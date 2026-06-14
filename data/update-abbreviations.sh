@@ -4,10 +4,10 @@
 # Lean 4 extension (leanprover/vscode-lean4, Apache-2.0).
 #
 # Usage:
-#   scripts/update-abbreviations.sh [REF]
+#   data/update-abbreviations.sh [REF]
 #
 # REF is a branch, tag, or commit to pull from (default: master). Example:
-#   scripts/update-abbreviations.sh v0.0.200
+#   data/update-abbreviations.sh v0.0.200
 #
 # The fetched file is validated as a non-empty JSON object before it
 # replaces the vendored copy, so a transient/garbled download cannot clobber
@@ -20,8 +20,9 @@ REPO="leanprover/vscode-lean4"
 SRC_PATH="lean4-unicode-input/src/abbreviations.json"
 URL="https://raw.githubusercontent.com/${REPO}/${REF}/${SRC_PATH}"
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DEST="${ROOT}/data/abbreviations.json"
+# The script lives next to the data file it maintains.
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEST="${DIR}/abbreviations.json"
 
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
@@ -45,9 +46,9 @@ else
 fi
 
 if [ -f "$DEST" ] && cmp -s "$tmp" "$DEST"; then
-  echo "Up to date: ${DEST#"$ROOT"/} unchanged."
+  echo "Up to date: $(basename "$DEST") unchanged."
 else
   mv "$tmp" "$DEST"
   trap - EXIT
-  echo "Updated: ${DEST#"$ROOT"/}"
+  echo "Updated: $(basename "$DEST")"
 fi
