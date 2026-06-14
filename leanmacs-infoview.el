@@ -39,16 +39,28 @@
         (leanmacs-infoview-mode)
         (current-buffer))))
 
-(defun leanmacs-infoview-display (string)
-  "Show STRING in the goal buffer and pop it up in a side window."
+(defun leanmacs-infoview-update (string)
+  "Set the goal buffer contents to STRING and return the buffer.
+Does not display the buffer.  No-ops when STRING is already shown, so
+unchanged refreshes neither flicker nor reset the goal buffer's point."
   (let ((buffer (leanmacs-infoview--buffer)))
     (with-current-buffer buffer
-      (let ((inhibit-read-only t))
-        (erase-buffer)
-        (insert string)
-        (goto-char (point-min))))
-    (display-buffer buffer leanmacs-infoview-display-action)
+      (unless (string= string (buffer-string))
+        (let ((inhibit-read-only t))
+          (erase-buffer)
+          (insert string)
+          (goto-char (point-min)))))
     buffer))
+
+(defun leanmacs-infoview-display (string)
+  "Set the goal buffer to STRING and pop it up in a side window."
+  (display-buffer (leanmacs-infoview-update string)
+                  leanmacs-infoview-display-action))
+
+(defun leanmacs-infoview-visible-p ()
+  "Return non-nil if the goal buffer is shown in some window."
+  (when-let* ((buffer (get-buffer leanmacs-infoview-buffer-name)))
+    (get-buffer-window buffer t)))
 
 (provide 'leanmacs-infoview)
 ;;; leanmacs-infoview.el ends here

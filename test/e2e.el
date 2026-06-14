@@ -78,5 +78,25 @@ LABEL is used in progress messages."
                   (string-match-p "⊢ b = a" g3))
              nil "expected hypotheses + `b = a' goal, got: %s" g3))
 
+;; --- cursor-follow auto-update ---
+;; With the infoview visible, moving the cursor should refresh the goal with
+;; no explicit `leanmacs-goal'.  Batch has no windows, so stub the visibility
+;; gate and fire the post-command hook directly after moving point.
+(cl-letf (((symbol-function 'leanmacs-infoview-visible-p) (lambda () t)))
+  (e2e-goal-at 8 2 "seed (sorry)")      ; seed infoview with the `True' goal
+  (goto-char (point-min))
+  (forward-line 1)                      ; move to the `by rfl' line, col 2
+  (move-to-column 2)
+  (message "[e2e] cursor-follow: moved to `by rfl', firing post-command (no leanmacs-goal)...")
+  (leanmacs--goal-post-command)
+  (e2e-pump
+   (lambda ()
+     (string-match-p "1 = 1"
+                     (with-current-buffer (leanmacs-infoview--buffer) (buffer-string))))
+   20 "cursor-follow auto-update")
+  (message "[e2e] --- cursor-follow result ---\n%s"
+           (with-current-buffer (leanmacs-infoview--buffer) (buffer-string)))
+  (message "[e2e] cursor-follow auto-update works."))
+
 (message "[e2e] PASS: interactive RPC keystone works end-to-end.")
 ;;; e2e.el ends here
