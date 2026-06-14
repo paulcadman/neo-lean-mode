@@ -13,5 +13,11 @@ Unicode abbreviation table used by leanmacs' input method (e.g. ~\to~ →
   [[https://github.com/Julian/lean.nvim][lean.nvim]], which bundles the same
   file.
 
+Refresh it from upstream with:
+
+#+begin_src sh
+scripts/update-abbreviations.sh [REF]   # REF defaults to master
+#+end_src
+
 The rest of leanmacs is MIT-licensed; this file is the only Apache-2.0
 component.
