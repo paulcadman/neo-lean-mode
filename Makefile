@@ -11,7 +11,8 @@
 EMACS ?= emacs
 
 SRC   := $(wildcard leanmacs*.el)
-TESTS := test/leanmacs-render-test.el test/leanmacs-input-test.el
+TESTS := test/leanmacs-render-test.el test/leanmacs-input-test.el \
+         test/leanmacs-progress-test.el
 
 .PHONY: test compile clean
 

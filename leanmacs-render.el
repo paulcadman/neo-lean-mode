@@ -74,5 +74,31 @@ Returns \"No goals.\" when GOALS is empty."
       "No goals."
     (mapconcat #'leanmacs-render-goal goals "\n\n")))
 
+(defconst leanmacs-render-term-goal-header "Expected type:"
+  "Header shown above the term goal (the expected type at point).")
+
+(defun leanmacs-render-term-goal (term-goal)
+  "Render an `InteractiveTermGoal' TERM-GOAL, or nil when there is none.
+A term goal carries hypotheses and a target type just like a tactic goal,
+so it is rendered the same way under `leanmacs-render-term-goal-header'."
+  (when term-goal
+    (concat leanmacs-render-term-goal-header "\n"
+            (leanmacs-render-goal term-goal))))
+
+(defun leanmacs-render-state (goals term-goal)
+  "Render the proof state at point to a string.
+GOALS is the vector of interactive tactic goals; TERM-GOAL is the optional
+`InteractiveTermGoal' (the expected type), or nil.  Shows the tactic goals,
+then an `Expected type' section when a term goal is present, and
+\"No goals.\" when there is neither."
+  (let ((sections '()))
+    (unless (seq-empty-p goals)
+      (push (mapconcat #'leanmacs-render-goal goals "\n\n") sections))
+    (when-let* ((term (leanmacs-render-term-goal term-goal)))
+      (push term sections))
+    (if sections
+        (string-join (nreverse sections) "\n\n")
+      "No goals.")))
+
 (provide 'leanmacs-render)
 ;;; leanmacs-render.el ends here

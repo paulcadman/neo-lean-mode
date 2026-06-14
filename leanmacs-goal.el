@@ -45,24 +45,33 @@ Coalesces rapid movement into a single request."
   "Buffer position of the last scheduled refresh.")
 
 (defun leanmacs--goal-update (&optional display)
-  "Fetch the interactive goals at point and render them into the infoview.
-With DISPLAY non-nil, pop up the infoview window once the goals arrive;
-otherwise refresh its contents in place."
+  "Fetch the proof state at point and render it into the infoview.
+Requests the interactive tactic goals and the term goal (the expected
+type) and shows both.  With DISPLAY non-nil, pop up the infoview window
+once they arrive; otherwise refresh its contents in place."
   (when (eglot-current-server)
     (let* ((id (cl-incf leanmacs--goal-request-id))
            (src (current-buffer))
            (subsession (leanmacs-rpc-open (leanmacs-rpc-position-params))))
       (cl-flet ((fresh-p ()
                   (and (buffer-live-p src)
-                       (= id (buffer-local-value 'leanmacs--goal-request-id src)))))
+                       (= id (buffer-local-value 'leanmacs--goal-request-id src))))
+                (show (goals term-goal)
+                  (let ((text (leanmacs-render-state goals term-goal)))
+                    (if display
+                        (leanmacs-infoview-display text)
+                      (leanmacs-infoview-update text)))))
         (leanmacs-rpc-get-interactive-goals
          subsession
          (lambda (result)
            (when (fresh-p)
-             (let ((text (leanmacs-render-goals (plist-get result :goals))))
-               (if display
-                   (leanmacs-infoview-display text)
-                 (leanmacs-infoview-update text)))))
+             ;; Chain the term goal so both render together; a missing or
+             ;; failed term goal just leaves the tactic goals showing.
+             (let ((goals (plist-get result :goals)))
+               (leanmacs-rpc-get-interactive-term-goal
+                subsession
+                (lambda (term-goal) (when (fresh-p) (show goals term-goal)))
+                (lambda (_err) (when (fresh-p) (show goals nil)))))))
          (lambda (err)
            ;; Ignore transient errors during movement; only report on an
            ;; explicit request.

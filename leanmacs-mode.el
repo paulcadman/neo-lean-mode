@@ -115,6 +115,7 @@ Eglot launches this within the current project."
   (add-to-list 'auto-mode-alist '("\\.lean\\'" . leanmacs-mode)))
 
 (require 'leanmacs-goal)
+(require 'leanmacs-progress)
 
 (provide 'leanmacs-mode)
 ;;; leanmacs-mode.el ends here

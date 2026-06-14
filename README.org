@@ -27,12 +27,17 @@ Open a ~.lean~ file in a Lake project, start the server with ~eglot~, then run
 * Features
 
 Early. The current milestone is the RPC keystone: connect to the server and show
-the live goal. Unicode abbreviation input (\to → →, \alpha → α) is also in.
+the live proof state -- the interactive tactic goals plus the term goal (the
+expected type at point), shown under an =Expected type:= heading when present.
+Unicode abbreviation input (\to → →, \alpha → α) is also in, as
+are file-processing progress bars (Lean marks the lines it is still elaborating
+in the left fringe; a ~|~ in the margin on terminals).
 
 | Command            | Binding   | Evil (Doom) | Description                                    |
 |--------------------+-----------+-------------+------------------------------------------------|
 | ~leanmacs-goal~    | ~C-c C-g~ | ~SPC m g~   | Show the interactive goal at point.            |
 | ~leanmacs-input-activate~ | --  | --          | Turn on the Leanmacs Unicode input method.     |
+| ~leanmacs-progress-clear~ | --  | --          | Remove file-processing progress bars from the buffer. |
 
 The =Evil (Doom)= binding is the suggested local-leader key; see [[*Keybindings][Keybindings]] to
 enable it.

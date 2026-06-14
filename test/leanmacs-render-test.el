@@ -74,6 +74,38 @@
                        (list :hyps (vector) :type '(:text "B")))))
     (should (equal (leanmacs-render-goals goals) "⊢ A\n\n⊢ B"))))
 
+;;;; Term goal / combined state
+
+(ert-deftest leanmacs-render-term-goal-nil ()
+  (should (null (leanmacs-render-term-goal nil))))
+
+(ert-deftest leanmacs-render-term-goal-simple ()
+  (let ((term (list :hyps (vector (list :names (vector "n")
+                                        :type '(:text "Nat")))
+                    :type '(:text "Nat"))))
+    (should (equal (leanmacs-render-term-goal term)
+                   "Expected type:\nn : Nat\n⊢ Nat"))))
+
+(ert-deftest leanmacs-render-state-goals-only ()
+  (let ((goals (vector (list :hyps (vector) :type '(:text "A")))))
+    (should (equal (leanmacs-render-state goals nil) "⊢ A"))))
+
+(ert-deftest leanmacs-render-state-term-only ()
+  ;; In term mode there are no tactic goals; only the expected type shows.
+  (let ((term (list :hyps (vector) :type '(:text "Nat"))))
+    (should (equal (leanmacs-render-state (vector) term)
+                   "Expected type:\n⊢ Nat"))))
+
+(ert-deftest leanmacs-render-state-both ()
+  (let ((goals (vector (list :hyps (vector) :type '(:text "A"))))
+        (term (list :hyps (vector) :type '(:text "Nat"))))
+    (should (equal (leanmacs-render-state goals term)
+                   "⊢ A\n\nExpected type:\n⊢ Nat"))))
+
+(ert-deftest leanmacs-render-state-empty ()
+  (should (equal (leanmacs-render-state (vector) nil) "No goals."))
+  (should (equal (leanmacs-render-state nil nil) "No goals.")))
+
 ;;;; RPC wire-format / dead-code detection
 
 (ert-deftest leanmacs-rpc-dead-code-p ()
