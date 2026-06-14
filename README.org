@@ -68,5 +68,9 @@ local-leader instead.
 * License and credits
 
 MIT (see ~LICENSE~). Behavior and the RPC handling are ported from the MIT
-~lean.nvim~ by Julian Berman; ~data/abbreviations.json~ is vendored from it.
-~nael~ and ~lean4-mode~ were design references only (no code copied).
+~lean.nvim~ by Julian Berman. ~nael~ and ~lean4-mode~ were design references
+only (no code copied).
+
+The one exception is ~data/abbreviations.json~, which comes from the VS Code
+Lean 4 extension ([[https://github.com/leanprover/vscode-lean4][leanprover/vscode-lean4]]) and is licensed under Apache-2.0; see
+~NOTICE~, ~data/README.org~, and ~LICENSES/Apache-2.0.txt~.

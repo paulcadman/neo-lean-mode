@@ -1,0 +1,22 @@
+leanmacs
+Copyright (c) 2026 Jan Mas Rovira
+
+This product includes software developed as part of the Lean ecosystem.
+
+------------------------------------------------------------------------
+data/abbreviations.json
+------------------------------------------------------------------------
+
+The Unicode abbreviation table in `data/abbreviations.json` is taken,
+unmodified, from the VS Code Lean 4 extension:
+
+    leanprover/vscode-lean4
+    https://github.com/leanprover/vscode-lean4
+
+It is licensed under the Apache License, Version 2.0; see
+`LICENSES/Apache-2.0.txt` for the full text. The copy was obtained via
+lean.nvim (https://github.com/Julian/lean.nvim), which vendors the same
+file.
+
+All other files in this repository are licensed under the MIT License;
+see `LICENSE`.

@@ -1,0 +1,17 @@
+#+title: leanmacs/data
+
+* abbreviations.json
+
+Unicode abbreviation table used by leanmacs' input method (e.g. ~\to~ →
+~→~, ~\alpha~ → ~α~).
+
+- *Origin:* the VS Code Lean 4 extension,
+  [[https://github.com/leanprover/vscode-lean4][leanprover/vscode-lean4]].
+- *License:* Apache License 2.0 (see ~../LICENSES/Apache-2.0.txt~ and
+  ~../NOTICE~).
+- *Modifications:* none — vendored verbatim. The copy was taken from
+  [[https://github.com/Julian/lean.nvim][lean.nvim]], which bundles the same
+  file.
+
+The rest of leanmacs is MIT-licensed; this file is the only Apache-2.0
+component.
