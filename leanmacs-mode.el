@@ -22,6 +22,7 @@
 ;;; Code:
 
 (require 'eglot)
+(require 'leanmacs-input)
 
 (defgroup leanmacs nil
   "Major mode for the Lean 4 theorem prover."
@@ -101,7 +102,10 @@ Eglot launches this within the current project."
   (setq-local comment-use-syntax t)
   (setq-local tab-width 2)
   ;; Suggest `lake build' when compiling.
-  (setq-local compile-command "lake build"))
+  (setq-local compile-command "lake build")
+  ;; Unicode abbreviation input (\alpha -> α, \<> -> ⟨⟩, ...).
+  (when leanmacs-input-enable
+    (activate-input-method leanmacs-input-method-name)))
 
 ;; Only claim `.lean' if nothing else already has (e.g. lean4-mode), so the
 ;; two can coexist and the user's chosen default wins.  Standalone installs

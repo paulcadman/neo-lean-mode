@@ -1,10 +1,7 @@
 An Emacs plugin for the [[https://lean-lang.org][Lean 4]] theorem prover, working
 toward feature parity with [[https://github.com/Julian/lean.nvim][lean.nvim]].
 
-Built on built-in *Eglot* + ~jsonrpc.el~, it speaks Lean's /interactive RPC/
-protocol (~$/lean/rpc/connect~, ~getInteractiveGoals~) — the layer behind a real
-infoview, not just plaintext LSP hovers. The major mode is ~leanmacs-mode~, named
-distinctly so it is never confused with ~lean-mode~ / ~lean4-mode~.
+Built on built-in *Eglot*.
 
 #+begin_quote
 ⚠️ *Vibe-coded.* This project is written largely by prompting an AI coding
@@ -14,14 +11,39 @@ agent. Expect rough edges; review before relying on it.
 * Status
 
 Early. The current milestone is the RPC keystone: connect to the server and show
-the live goal.
+the live goal. Unicode abbreviation input (\to → →, \alpha → α) is also in.
 
-| Command         | Binding   | Evil (Doom) | Description                         |
-|-----------------+-----------+-------------+-------------------------------------|
-| ~leanmacs-goal~ | ~C-c C-g~ | ~SPC m g~   | Show the interactive goal at point. |
+| Command            | Binding   | Evil (Doom) | Description                                    |
+|--------------------+-----------+-------------+------------------------------------------------|
+| ~leanmacs-goal~    | ~C-c C-g~ | ~SPC m g~   | Show the interactive goal at point.            |
+| ~leanmacs-input-activate~ | --  | --          | Turn on the Leanmacs Unicode input method.     |
 
 The =Evil (Doom)= binding is the suggested local-leader key; see [[*Keybindings][Keybindings]] to
 enable it.
+
+* Unicode input
+
+~leanmacs-mode~ activates a Quail input method named =Leanmacs=. Type a
+backslash followed by an abbreviation to insert the corresponding Unicode
+symbol:
+
+| Type      | Inserts | Note                          |
+|-----------+---------+-------------------------------|
+| ~\alpha~  | α       |                               |
+| ~\to~     | →       |                               |
+| ~\and~    | ∧       |                               |
+| ~\<>~     | ⟨⟩      | point lands between the pair  |
+| ~\norm~   | ‖‖      | point lands between the pair  |
+| ~\\~      | \       | escape the leader             |
+
+The ~$CURSOR~-style abbreviations (mostly matching delimiter pairs) expand with
+point placed where the cursor marker was, which lean4-mode's input method does
+not do.
+
+Toggle the method off and on in a buffer with ~toggle-input-method~. To stop
+~leanmacs-mode~ from enabling it automatically, set ~leanmacs-input-enable~ to
+~nil~. The table is generated from ~data/abbreviations.json~; after changing
+that file, run ~leanmacs-input-setup~ to rebuild.
 
 * Requirements
 
@@ -29,7 +51,7 @@ enable it.
 - A Lean 4 toolchain (~lake~, ~lean~) on ~PATH~, e.g. via
   [[https://github.com/leanprover/elan][elan]].
 
-* Usage
+* Installation
 
 #+begin_src elisp
 (add-to-list 'load-path "/path/to/lean-emacs")
@@ -39,31 +61,22 @@ enable it.
 Open a ~.lean~ file in a Lake project, start the server with ~eglot~, then run
 ~leanmacs-goal~ inside a proof. The goal buffer then follows the cursor.
 
-* Keybindings
+* Development
 
-The only built-in binding is ~leanmacs-goal~ on ~C-c C-g~ in ~leanmacs-mode-map~.
+Run the batch test suite (pure functions, rendering, RPC wire-format, the input
+method -- no Lean server needed):
 
-** Vim / Evil
-
-~leanmacs-mode~ is a normal major mode, so Evil works out of the box. The
-~C-c C-g~ binding is awkward from normal state, so bind ~leanmacs-goal~ under the
-local-leader instead.
-
-*Doom Emacs* (~SPC m g~ runs ~leanmacs-goal~):
-
-#+begin_src elisp
-(map! :map leanmacs-mode-map
-      :localleader
-      "g" #'leanmacs-goal)
+#+begin_src sh
+make test
 #+end_src
 
-*Vanilla Evil* (~<localleader> g~ runs ~leanmacs-goal~):
+~make compile~ byte-compiles every source file, and ~make clean~ removes the
+artifacts. Override the Emacs binary with e.g. ~make EMACS=emacs-30.1 test~.
+CI runs these on several Emacs versions via GitHub Actions (see
+~.github/workflows/ci.yml~).
 
-#+begin_src elisp
-(with-eval-after-load 'leanmacs-mode
-  (evil-define-key 'normal leanmacs-mode-map
-    (kbd "<localleader>g") #'leanmacs-goal))
-#+end_src
+The end-to-end test in ~test/e2e.el~ talks to a real ~lake serve~ and is run
+manually, not by ~make test~; see the file header for instructions.
 
 * License and credits
 
