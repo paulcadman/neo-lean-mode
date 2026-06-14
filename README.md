@@ -33,8 +33,34 @@ the live goal.
 (require 'leanmacs-mode)
 ```
 
-Open a `.lean` file in a Lake project, `M-x eglot` to start the server, then
-`C-c C-g` inside a proof.
+Open a `.lean` file in a Lake project, start the server with `eglot`, then run
+`leanmacs-goal` inside a proof. The goal buffer then follows the cursor.
+
+## Keybindings
+
+The only built-in binding is `leanmacs-goal` on `C-c C-g` in `leanmacs-mode-map`.
+
+### Vim / Evil
+
+`leanmacs-mode` is a normal major mode, so Evil works out of the box. The
+`C-c C-g` binding is awkward from normal state, so bind `leanmacs-goal` under
+the local-leader instead.
+
+**Doom Emacs** (`SPC m g` runs `leanmacs-goal`):
+
+```elisp
+(map! :map leanmacs-mode-map
+      :localleader
+      "g" #'leanmacs-goal)
+```
+
+**Vanilla Evil** (`<localleader> g` runs `leanmacs-goal`):
+
+```elisp
+(with-eval-after-load 'leanmacs-mode
+  (evil-define-key 'normal leanmacs-mode-map
+    (kbd "<localleader>g") #'leanmacs-goal))
+```
 
 ## License and credits
 
