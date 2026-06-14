@@ -1,4 +1,4 @@
-;;; lean-infoview.el --- Display buffer for Lean goals  -*- lexical-binding: t; -*-
+;;; leanmacs-infoview.el --- Display buffer for Lean goals  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Jan Mas Rovira
 
@@ -15,40 +15,40 @@
 
 ;;; Code:
 
-(defcustom lean-infoview-buffer-name "*Lean Goal*"
+(defcustom leanmacs-infoview-buffer-name "*Leanmacs Goal*"
   "Name of the buffer used to display Lean goals."
   :type 'string
-  :group 'lean)
+  :group 'leanmacs)
 
-(defvar lean-infoview-display-action
+(defvar leanmacs-infoview-display-action
   '((display-buffer-in-side-window)
     (side . right)
     (window-width . 0.4)
     (slot . 0))
   "`display-buffer' ACTION used to show the goal buffer.")
 
-(define-derived-mode lean-infoview-mode special-mode "Lean Goal"
+(define-derived-mode leanmacs-infoview-mode special-mode "Leanmacs Goal"
   "Major mode for the Lean goal display buffer."
   (setq-local truncate-lines nil)
   (setq-local cursor-type nil))
 
-(defun lean-infoview--buffer ()
+(defun leanmacs-infoview--buffer ()
   "Return the shared goal buffer, creating it if necessary."
-  (or (get-buffer lean-infoview-buffer-name)
-      (with-current-buffer (get-buffer-create lean-infoview-buffer-name)
-        (lean-infoview-mode)
+  (or (get-buffer leanmacs-infoview-buffer-name)
+      (with-current-buffer (get-buffer-create leanmacs-infoview-buffer-name)
+        (leanmacs-infoview-mode)
         (current-buffer))))
 
-(defun lean-infoview-display (string)
+(defun leanmacs-infoview-display (string)
   "Show STRING in the goal buffer and pop it up in a side window."
-  (let ((buffer (lean-infoview--buffer)))
+  (let ((buffer (leanmacs-infoview--buffer)))
     (with-current-buffer buffer
       (let ((inhibit-read-only t))
         (erase-buffer)
         (insert string)
         (goto-char (point-min))))
-    (display-buffer buffer lean-infoview-display-action)
+    (display-buffer buffer leanmacs-infoview-display-action)
     buffer))
 
-(provide 'lean-infoview)
-;;; lean-infoview.el ends here
+(provide 'leanmacs-infoview)
+;;; leanmacs-infoview.el ends here

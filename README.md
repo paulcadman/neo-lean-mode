@@ -15,9 +15,12 @@ powers a real infoview with clickable goals.
 Early. The current milestone is the **RPC keystone spike**: connect to the Lean
 server's interactive RPC session and display the live tactic state.
 
-| Command       | Binding   | Description                          |
-|---------------|-----------|--------------------------------------|
-| `lean-goal`   | `C-c C-g` | Show the interactive goal at point.  |
+| Command         | Binding   | Description                          |
+|-----------------|-----------|--------------------------------------|
+| `leanmacs-goal` | `C-c C-g` | Show the interactive goal at point.  |
+
+The major mode is `leanmacs-mode` (named distinctly so it is never confused with
+`lean-mode`/`lean4-mode`).
 
 ## Requirements
 
@@ -29,7 +32,7 @@ server's interactive RPC session and display the live tactic state.
 
 ```elisp
 (add-to-list 'load-path "/path/to/lean-emacs")
-(require 'lean-mode)
+(require 'leanmacs-mode)
 ```
 
 Open a `.lean` file inside a Lake project, `M-x eglot` to start the server, then

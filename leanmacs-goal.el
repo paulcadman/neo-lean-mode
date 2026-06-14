@@ -1,4 +1,4 @@
-;;; lean-goal.el --- Show the interactive goal at point  -*- lexical-binding: t; -*-
+;;; leanmacs-goal.el --- Show the interactive goal at point  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Jan Mas Rovira
 
@@ -8,33 +8,33 @@
 
 ;;; Commentary:
 
-;; The `lean-goal' command: fetch the interactive goals at point over the
+;; The `leanmacs-goal' command: fetch the interactive goals at point over the
 ;; Lean RPC session and show them in the goal buffer.  This is the
 ;; user-facing payoff of the RPC keystone -- it exercises the full path
 ;; connect -> getInteractiveGoals -> render -> display.
 
 ;;; Code:
 
-(require 'lean-rpc)
-(require 'lean-render)
-(require 'lean-infoview)
+(require 'leanmacs-rpc)
+(require 'leanmacs-render)
+(require 'leanmacs-infoview)
 
 ;;;###autoload
-(defun lean-goal ()
+(defun leanmacs-goal ()
   "Display the interactive tactic state at point in the goal buffer.
 Requires an active Eglot connection to the Lean server in this buffer."
   (interactive)
   (unless (eglot-current-server)
     (user-error "No Lean language server connected (try `M-x eglot')"))
-  (let ((subsession (lean-rpc-open (lean-rpc-position-params))))
-    (lean-rpc-get-interactive-goals
+  (let ((subsession (leanmacs-rpc-open (leanmacs-rpc-position-params))))
+    (leanmacs-rpc-get-interactive-goals
      subsession
      (lambda (result)
-       (lean-infoview-display (lean-render-goals (plist-get result :goals))))
+       (leanmacs-infoview-display (leanmacs-render-goals (plist-get result :goals))))
      (lambda (err)
-       (message "lean-goal: %s"
+       (message "leanmacs-goal: %s"
                 (or (and (listp err) (plist-get err :message))
                     err))))))
 
-(provide 'lean-goal)
-;;; lean-goal.el ends here
+(provide 'leanmacs-goal)
+;;; leanmacs-goal.el ends here

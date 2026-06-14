@@ -11,7 +11,7 @@
 
 ;;; Code:
 
-(require 'lean-mode)
+(require 'leanmacs-mode)
 
 (defvar e2e-dir (file-name-directory (or load-file-name buffer-file-name)))
 
@@ -25,24 +25,24 @@ Signal an error mentioning WHAT on timeout."
       (error "Timed out after %ss waiting for %s" seconds what))))
 
 (defun e2e-goal-at (line col label)
-  "Move to LINE/COL, run `lean-goal', and return the rendered string.
+  "Move to LINE/COL, run `leanmacs-goal', and return the rendered string.
 LABEL is used in progress messages."
   (goto-char (point-min))
   (forward-line (1- line))
   (move-to-column col)
   (message "[e2e] requesting goal at %s (line %d col %d)..." label line col)
-  (let ((before (with-current-buffer (lean-infoview--buffer) (buffer-string))))
-    (lean-goal)
+  (let ((before (with-current-buffer (leanmacs-infoview--buffer) (buffer-string))))
+    (leanmacs-goal)
     (e2e-pump
      (lambda ()
        (not (equal before
-                   (with-current-buffer (lean-infoview--buffer) (buffer-string)))))
+                   (with-current-buffer (leanmacs-infoview--buffer) (buffer-string)))))
      20 (format "goal response (%s)" label))
-    (with-current-buffer (lean-infoview--buffer) (buffer-string))))
+    (with-current-buffer (leanmacs-infoview--buffer) (buffer-string))))
 
 (let ((file (expand-file-name "fixture/Fixture.lean" e2e-dir)))
   (find-file file)
-  (cl-assert (derived-mode-p 'lean-mode) nil "fixture did not open in lean-mode")
+  (cl-assert (derived-mode-p 'leanmacs-mode) nil "fixture did not open in leanmacs-mode")
   (message "[e2e] starting Eglot (lake serve); first run may build core...")
   ;; `eglot-ensure' defers via `post-command-hook', which never fires under
   ;; --batch, so connect directly.  Wait synchronously for initialization.
