@@ -27,10 +27,25 @@
     (slot . 0))
   "`display-buffer' ACTION used to show the goal buffer.")
 
+(defvar-local leanmacs-infoview--source-buffer nil
+  "The Lean source buffer whose goal is currently displayed here.")
+(defvar-local leanmacs-infoview--source-pos nil
+  "The text-document-position the displayed goal was fetched at.
+Used to open an RPC session for interactive commands (e.g. go-to-definition)
+issued from this buffer.")
+
 (define-derived-mode leanmacs-infoview-mode special-mode "Leanmacs Goal"
   "Major mode for the Lean goal display buffer."
   (setq-local truncate-lines nil)
   (setq-local cursor-type nil))
+
+(defun leanmacs-infoview-set-source (buffer pos)
+  "Record BUFFER and POS as the source of the currently displayed goal.
+POS is an LSP text-document-position plist.  Interactive commands in the
+goal buffer use these to talk to the Lean server about the source document."
+  (with-current-buffer (leanmacs-infoview--buffer)
+    (setq leanmacs-infoview--source-buffer buffer
+          leanmacs-infoview--source-pos pos)))
 
 (defun leanmacs-infoview--buffer ()
   "Return the shared goal buffer, creating it if necessary."

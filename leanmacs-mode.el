@@ -116,6 +116,8 @@ Eglot launches this within the current project."
 
 (require 'leanmacs-goal)
 (require 'leanmacs-progress)
+;; Optional editor integrations; each self-disables when its host is absent.
+(require 'leanmacs-doom)
 
 (provide 'leanmacs-mode)
 ;;; leanmacs-mode.el ends here

@@ -26,21 +26,32 @@ Open a ~.lean~ file in a Lake project, start the server with ~eglot~, then run
 
 * Features
 
-Early. The current milestone is the RPC keystone: connect to the server and show
-the live proof state -- the interactive tactic goals plus the term goal (the
-expected type at point), shown under an =Expected type:= heading when present.
-Unicode abbreviation input (\to → →, \alpha → α) is also in, as
-are file-processing progress bars (Lean marks the lines it is still elaborating
-in the left fringe; a ~|~ in the margin on terminals).
+The goal buffer shows the live proof state: the interactive tactic goals and the
+term goal (the expected type at point, under an =Expected type:= heading). The
+goal is interactive -- each subexpression carries the server's info, so
+go-to-definition/type jumps from the subexpression under point to its source
+(wired into Doom's =+lookup/= commands automatically; see [[*Doom integration][Doom integration]]).
 
-| Command            | Binding   | Evil (Doom) | Description                                    |
-|--------------------+-----------+-------------+------------------------------------------------|
-| ~leanmacs-goal~    | ~C-c C-g~ | ~SPC m g~   | Show the interactive goal at point.            |
-| ~leanmacs-input-activate~ | --  | --          | Turn on the Leanmacs Unicode input method.     |
-| ~leanmacs-progress-clear~ | --  | --          | Remove file-processing progress bars from the buffer. |
+Also: Unicode abbreviation input (\to → →, \alpha → α) and file-processing
+progress bars (lines still being elaborated are marked in the left fringe; a ~|~
+in the margin on terminals).
 
-The =Evil (Doom)= binding is the suggested local-leader key; see [[*Keybindings][Keybindings]] to
-enable it.
+| Command                           | Binding   | Evil (Doom) | Description                                                                |
+|-----------------------------------+-----------+-------------+----------------------------------------------------------------------------|
+| ~leanmacs-goal~                   | ~C-c C-g~ | ~SPC m g~   | Show the interactive goal at point.                                        |
+| ~leanmacs-goal-go-to-definition~  | ~RET~     | ~g d~       | In the goal buffer, go to the definition of the subexpression under point. |
+| ~leanmacs-goal-go-to-declaration~ | --        | --          | As above, but the declaration.                                             |
+| ~leanmacs-goal-go-to-type~        | --        | ~SPC c t~   | As above, but the subexpression's type.                                    |
+| ~leanmacs-input-activate~         | --        | --          | Turn on the Leanmacs Unicode input method.                                 |
+| ~leanmacs-progress-clear~         | --        | --          | Remove file-processing progress bars from the buffer.                      |
+
+The =Evil (Doom)= column lists the suggested Doom bindings.
+
+* Doom integration
+
+Enabled automatically when Doom is detected; no configuration required. It hooks
+leanmacs into various Doom features. For example, ~+lookup/definition~ works on
+the symbol under point in the goal buffer.
 
 * Development
 

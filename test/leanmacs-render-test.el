@@ -31,11 +31,47 @@
                   (list :append (vector '(:text "a") '(:text "b") '(:text "c"))))
                  "abc")))
 
-(ert-deftest leanmacs-render-tagged-text-tag-ignores-payload ()
-  ;; (:tag [PAYLOAD INNER]) -- payload dropped, inner rendered.
+(ert-deftest leanmacs-render-tagged-text-tag-renders-inner ()
+  ;; (:tag [SUBEXPR INNER]) -- inner text rendered (info kept as a property).
   (should (equal (leanmacs-render-tagged-text
                   (list :tag (vector '(:info "ignored") '(:text "Nat"))))
                  "Nat")))
+
+(ert-deftest leanmacs-render-tagged-text-tag-attaches-info ()
+  ;; The subexpression's `info' becomes the `leanmacs-info' text property.
+  (let* ((info '(:p 7))
+         (tt (list :tag (vector (list :info info :subexprPos "0")
+                                '(:text "Nat"))))
+         (s (leanmacs-render-tagged-text tt)))
+    (should (equal s "Nat"))
+    (should (eq (get-text-property 0 'leanmacs-info s) info))
+    (should (equal (get-text-property 0 'leanmacs-subexpr-pos s) "0"))))
+
+(ert-deftest leanmacs-render-tagged-text-innermost-info-wins ()
+  ;; Outer tag wraps "f x"; an inner tag covers just "x".  The inner (more
+  ;; specific) info must win on "x" while the outer fills "f ".
+  (let* ((outer '(:p 1))
+         (inner '(:p 2))
+         (inner-node (list :tag (vector (list :info inner :subexprPos "1")
+                                        '(:text "x"))))
+         (tt (list :tag (vector (list :info outer :subexprPos "0")
+                                (list :append (vector '(:text "f ") inner-node)))))
+         (s (leanmacs-render-tagged-text tt)))
+    (should (equal s "f x"))
+    (should (eq (get-text-property 0 'leanmacs-info s) outer))   ; "f"
+    (should (eq (get-text-property 2 'leanmacs-info s) inner)))) ; "x"
+
+(ert-deftest leanmacs-render-goal-keeps-info-in-type ()
+  ;; The subexpression info survives goal rendering (concat, not format).
+  (let* ((info '(:p 9))
+         (goal (list :hyps (vector)
+                     :type (list :tag (vector (list :info info :subexprPos "0")
+                                              '(:text "Nat")))))
+         (s (leanmacs-render-goal goal)))
+    (should (equal s "⊢ Nat"))
+    ;; The "Nat" starts right after the goal prefix "⊢ ".
+    (should (eq (get-text-property (string-match "Nat" s) 'leanmacs-info s)
+                info))))
 
 (ert-deftest leanmacs-render-tagged-text-nested ()
   (let ((tt (list :append

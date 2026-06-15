@@ -20,9 +20,16 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'seq)
 (require 'leanmacs-rpc)
 (require 'leanmacs-render)
 (require 'leanmacs-infoview)
+
+;; `eglot-uri-to-path' is the public name on Emacs 30+; on 29.x only the
+;; internal `eglot--uri-to-path' exists.  Pick whichever is present.
+(defalias 'leanmacs--goal-uri-to-path
+  (if (fboundp 'eglot-uri-to-path) 'eglot-uri-to-path 'eglot--uri-to-path)
+  "Convert an LSP document URI to a local file path.")
 
 (defcustom leanmacs-goal-auto-update t
   "When non-nil, refresh the goal buffer as the cursor moves.
@@ -52,12 +59,16 @@ once they arrive; otherwise refresh its contents in place."
   (when (eglot-current-server)
     (let* ((id (cl-incf leanmacs--goal-request-id))
            (src (current-buffer))
-           (subsession (leanmacs-rpc-open (leanmacs-rpc-position-params))))
+           (pos (leanmacs-rpc-position-params))
+           (subsession (leanmacs-rpc-open pos)))
       (cl-flet ((fresh-p ()
                   (and (buffer-live-p src)
                        (= id (buffer-local-value 'leanmacs--goal-request-id src))))
                 (show (goals term-goal)
                   (let ((text (leanmacs-render-state goals term-goal)))
+                    ;; Remember where this goal came from so interactive
+                    ;; commands in the goal buffer can query the server.
+                    (leanmacs-infoview-set-source src pos)
                     (if display
                         (leanmacs-infoview-display text)
                       (leanmacs-infoview-update text)))))
@@ -114,6 +125,71 @@ Lean server in this buffer."
   (add-hook 'post-command-hook #'leanmacs--goal-post-command nil t))
 
 (add-hook 'leanmacs-mode-hook #'leanmacs--goal-setup)
+
+;;;; Interactive subexpressions: go to definition/declaration/type
+
+(defun leanmacs--goal-jump (link)
+  "Jump to LSP LINK, an LSP `Location' or `LocationLink' plist."
+  (let* ((uri (or (plist-get link :targetUri) (plist-get link :uri)))
+         (range (or (plist-get link :targetSelectionRange)
+                    (plist-get link :targetRange)
+                    (plist-get link :range)))
+         (path (and uri (leanmacs--goal-uri-to-path uri))))
+    (unless path
+      (user-error "Location has no file URI"))
+    (pop-to-buffer (find-file-noselect path))
+    (when range
+      (goto-char (eglot--lsp-position-to-point (plist-get range :start)))
+      (recenter))))
+
+(defun leanmacs--goal-go-to (kind)
+  "Resolve the subexpression under point and go to its KIND location.
+KIND is \"definition\", \"declaration\" or \"type\".  Reads the
+`leanmacs-info' text property at point in the goal buffer and asks the Lean
+server (on the source buffer's session) for the location.
+
+Returns non-nil once the request is dispatched.  The actual jump happens
+asynchronously in the callback, so this is also a well-behaved Doom
+`+lookup' handler: Doom can only judge success by the return value (point
+has not moved yet when we return), so we must report success here."
+  (let ((info (get-text-property (point) 'leanmacs-info))
+        (src leanmacs-infoview--source-buffer)
+        (pos leanmacs-infoview--source-pos))
+    (unless info
+      (user-error "No subexpression under point"))
+    (unless (buffer-live-p src)
+      (user-error "No live Lean source buffer for this goal"))
+    (with-current-buffer src
+      (unless (eglot-current-server)
+        (user-error "No Lean language server connected"))
+      (let ((subsession (leanmacs-rpc-open pos)))
+        (leanmacs-rpc-get-go-to-location
+         subsession kind info
+         (lambda (links)
+           (if (seq-empty-p links)
+               (message "leanmacs: no %s location" kind)
+             (leanmacs--goal-jump (seq-elt links 0))))
+         (lambda (err)
+           (message "leanmacs: %s"
+                    (or (and (listp err) (plist-get err :message)) err))))))
+    t))
+
+(defun leanmacs-goal-go-to-definition ()
+  "Go to the definition of the subexpression under point in the goal buffer."
+  (interactive)
+  (leanmacs--goal-go-to "definition"))
+
+(defun leanmacs-goal-go-to-declaration ()
+  "Go to the declaration of the subexpression under point in the goal buffer."
+  (interactive)
+  (leanmacs--goal-go-to "declaration"))
+
+(defun leanmacs-goal-go-to-type ()
+  "Go to the type of the subexpression under point in the goal buffer."
+  (interactive)
+  (leanmacs--goal-go-to "type"))
+
+(define-key leanmacs-infoview-mode-map (kbd "RET") #'leanmacs-goal-go-to-definition)
 
 (provide 'leanmacs-goal)
 ;;; leanmacs-goal.el ends here

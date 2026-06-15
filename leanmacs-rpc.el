@@ -243,5 +243,15 @@ Calls `Lean.Widget.getInteractiveTermGoal'."
    subsession "Lean.Widget.getInteractiveTermGoal"
    (leanmacs-rpc-subsession-pos subsession) success error))
 
+(defun leanmacs-rpc-get-go-to-location (subsession kind info success error)
+  "Request go-to locations for INFO on SUBSESSION.
+KIND is one of the strings \"definition\", \"declaration\" or \"type\".
+INFO is the `InfoWithCtx' handle taken from a subexpression's tag (the
+`leanmacs-info' text property).  Calls `Lean.Widget.getGoToLocation' and
+yields a vector of LSP `LocationLink's."
+  (leanmacs-rpc-subsession-call
+   subsession "Lean.Widget.getGoToLocation"
+   (list :kind kind :info info) success error))
+
 (provide 'leanmacs-rpc)
 ;;; leanmacs-rpc.el ends here
