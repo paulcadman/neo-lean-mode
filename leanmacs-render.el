@@ -31,7 +31,7 @@
 
 ;;;; Faces
 ;;
-;; Structural highlighting only (mirroring lean.nvim's infoview): the goal
+;; Structural highlighting only: the goal
 ;; expressions themselves are not re-tokenised, but the turnstile, case labels,
 ;; hypothesis names and the expected-type header are coloured.  Each inherits a
 ;; standard font-lock face so it follows the user's theme; rebind to taste.
@@ -174,9 +174,9 @@ so it is rendered the same way under `leanmacs-render-term-goal-header'."
   "Render an `InfoPopup' POPUP to a string, or nil when there is nothing to show.
 POPUP is what `Lean.Widget.InteractiveDiagnostics.infoToInteractive' returns
 for a subexpression: an optional :exprExplicit and :type (both
-`CodeWithInfos') and an optional :doc string.  Mirrors lean.nvim's tooltip:
-the explicit expression and its type on one line as \"EXPR : TYPE\", then the
-docstring after a blank line."
+`CodeWithInfos') and an optional :doc string.  Renders the explicit
+expression and its type on one line as \"EXPR : TYPE\", then the docstring
+after a blank line."
   (when popup
     (let* ((expr (plist-get popup :exprExplicit))
            (type (plist-get popup :type))

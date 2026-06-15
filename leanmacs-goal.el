@@ -10,8 +10,7 @@
 
 ;; Fetch the interactive goals at point over the Lean RPC session and show
 ;; them in the goal buffer.  `leanmacs-goal' opens the buffer on demand; while
-;; it is visible it follows the cursor, refreshing after a short debounce
-;; (like lean.nvim's `update_cooldown').
+;; it is visible it follows the cursor, refreshing after a short debounce.
 ;;
 ;; Cursor-follow is gated on the goal buffer being visible -- so moving around
 ;; with the infoview closed costs nothing -- and each request carries a
@@ -285,11 +284,30 @@ Hides it when point is not on an interactive subexpression."
      ((overlayp leanmacs--goal-hover-overlay)
       (delete-overlay leanmacs--goal-hover-overlay)))))
 
+;; Optional: show the hover in a childframe tooltip at point when the
+;; `eldoc-box' package is installed.  Declared so the byte-compiler doesn't
+;; warn when the package is absent.
+(declare-function eldoc-box-hover-at-point-mode "ext:eldoc-box")
+
+(defcustom leanmacs-goal-hover-tooltip t
+  "When non-nil, show goal-buffer hovers in a childframe tooltip at point.
+This needs the optional `eldoc-box' package and a graphical frame; without
+either, the hover falls back to ElDoc's echo-area display."
+  :type 'boolean
+  :group 'leanmacs)
+
 (defun leanmacs--infoview-eldoc-setup ()
-  "Enable ElDoc hover and the hover highlight in the goal buffer."
+  "Enable ElDoc hover and the hover highlight in the goal buffer.
+If `leanmacs-goal-hover-tooltip' is set and the optional `eldoc-box' package
+is available, the hover is shown in a childframe tooltip at point; otherwise
+ElDoc falls back to the echo area."
   (add-hook 'eldoc-documentation-functions
             #'leanmacs-goal-eldoc-function nil t)
   (eldoc-mode 1)
+  (when (and leanmacs-goal-hover-tooltip
+             (display-graphic-p)
+             (require 'eldoc-box nil t))
+    (eldoc-box-hover-at-point-mode 1))
   (add-hook 'post-command-hook #'leanmacs--goal-update-hover nil t))
 
 (add-hook 'leanmacs-infoview-mode-hook #'leanmacs--infoview-eldoc-setup)

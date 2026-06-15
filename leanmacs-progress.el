@@ -12,8 +12,7 @@
 ;; streams `$/lean/fileProgress' notifications telling us which line ranges
 ;; are still being processed.  This module shows that as an unobtrusive bar
 ;; in the left fringe (a `|' in the margin on terminals) on every line Lean
-;; is still working on, clearing it as ranges finish.  It is a port of
-;; lean.nvim's `lua/lean/progress.lua' and `progress_bars.lua'.
+;; is still working on, clearing it as ranges finish.
 ;;
 ;; The notification is handled globally (it is not tied to the current
 ;; buffer); we resolve its URI to the visiting buffer and draw there, after
@@ -77,8 +76,8 @@ Coalesces a burst of `$/lean/fileProgress' updates into a single redraw."
   "Return the 0-based line numbers covered by RANGES, clamped to MAX-LINE.
 RANGES is a list of plists as found in a `$/lean/fileProgress'
 notification, each shaped (:range (:start (:line L ...) :end (:line L ...))
-...).  The result is sorted and de-duplicated.  Mirrors lean.nvim, which
-marks every line from a range's start through its end inclusive."
+...).  The result is sorted and de-duplicated, marking every line from a
+range's start through its end inclusive."
   (let ((lines '()))
     (dolist (info ranges)
       (let* ((range (plist-get info :range))

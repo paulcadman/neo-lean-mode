@@ -11,9 +11,9 @@
 
 ;;; Commentary:
 
-;; Umbrella entry point for leanmacs, an Emacs plugin for Lean 4 working
-;; toward feature parity with lean.nvim.  Loading this pulls in the major
-;; mode and its interactive-RPC goal display; see `leanmacs-mode'.
+;; Umbrella entry point for leanmacs, an Emacs plugin for Lean 4.  Loading
+;; this pulls in the major mode and its interactive-RPC goal display; see
+;; `leanmacs-mode'.
 ;;
 ;; The package is deliberately named `leanmacs' (mode `leanmacs-mode') so it
 ;; is never confused with `lean-mode' or `lean4-mode'.

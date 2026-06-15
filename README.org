@@ -37,6 +37,11 @@ and its type and docstring appear in the echo area (use ~eldoc-doc-buffer~ for
 the full, multi-line view).  The subexpression under point is highlighted as you
 move, so you can see exactly which subterm the hover refers to.
 
+If the optional [[https://github.com/casouri/eldoc-box][eldoc-box]] package is installed, the hover is instead shown in a
+childframe tooltip at point (like lean.nvim's floating window). It is enabled
+automatically in graphical frames; set ~leanmacs-goal-hover-tooltip~ to nil to
+keep the echo-area display.
+
 Also: Unicode abbreviation input (\to → →, \alpha → α) and file-processing
 progress bars (lines still being elaborated are marked in the left fringe; a ~|~
 in the margin on terminals).

@@ -10,9 +10,8 @@
 
 ;;; Commentary:
 
-;; A major mode for editing Lean 4 source, working toward feature parity
-;; with lean.nvim.  This file defines `leanmacs-mode' and configures Eglot to
-;; talk to the Lean language server (`lake serve').
+;; A major mode for editing Lean 4 source.  This file defines `leanmacs-mode'
+;; and configures Eglot to talk to the Lean language server (`lake serve').
 ;;
 ;; This milestone keeps the mode itself minimal -- just enough for Eglot
 ;; to attach.  Full font-lock, indentation and imenu come later.  The point

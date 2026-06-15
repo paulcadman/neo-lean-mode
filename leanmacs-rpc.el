@@ -9,9 +9,8 @@
 ;;; Commentary:
 
 ;; Low-level interactive RPC with the Lean language server, the layer that
-;; powers a real infoview (clickable goals, widgets, hovers).  It is a port
-;; of lean.nvim's `lua/lean/rpc.lua' onto Emacs' `jsonrpc.el' (the library
-;; Eglot is built on).
+;; powers a real infoview (clickable goals, widgets, hovers).  It is built on
+;; Emacs' `jsonrpc.el' (the library Eglot is built on).
 ;;
 ;; The model: for each open document we establish one RPC *session* via
 ;; `$/lean/rpc/connect', keep it alive with periodic `$/lean/rpc/keepAlive'
