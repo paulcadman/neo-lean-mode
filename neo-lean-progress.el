@@ -168,14 +168,24 @@ range's start through its end inclusive."
       (and path (find-buffer-visiting path)))))
 
 (defun neo-lean-progress--handle (uri processing)
-  "Record PROCESSING ranges for URI's buffer and schedule a redraw."
+  "Record PROCESSING ranges for URI's buffer and refresh its progress bar.
+A non-empty update is drawn through the debounce
+\(`neo-lean-progress--schedule').  An empty update means the file finished
+elaborating, so clear immediately and cancel any pending redraw: routing
+\"done\" through the debounce can let it sit behind an already-scheduled
+timer, which is why a finished, correct file occasionally kept stale marks."
   (when neo-lean-progress-enable
     (let ((buffer (neo-lean-progress--buffer-for-uri uri)))
       (when (buffer-live-p buffer)
         (with-current-buffer buffer
           ;; Eglot delivers JSON arrays as vectors; normalise to a list.
           (setq neo-lean-progress--ranges (append processing nil))
-          (neo-lean-progress--schedule))))))
+          (if neo-lean-progress--ranges
+              (neo-lean-progress--schedule)
+            (when (timerp neo-lean-progress--timer)
+              (cancel-timer neo-lean-progress--timer)
+              (setq neo-lean-progress--timer nil))
+            (neo-lean-progress--clear-overlays)))))))
 
 ;; Server-pushed progress.  Handled globally and routed to the visiting
 ;; buffer by URI -- the notification is not tied to the current buffer.
