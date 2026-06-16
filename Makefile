@@ -1,4 +1,4 @@
-# Makefile for leanmacs.
+# Makefile for neo-lean.
 #
 #   make test      run the batch ERT suite (no Lean server needed)
 #   make compile   byte-compile all sources (warnings shown)
@@ -10,9 +10,9 @@
 
 EMACS ?= emacs
 
-SRC   := $(wildcard leanmacs*.el)
-TESTS := test/leanmacs-render-test.el test/leanmacs-input-test.el \
-         test/leanmacs-progress-test.el
+SRC   := $(wildcard neo-lean*.el)
+TESTS := test/neo-lean-render-test.el test/neo-lean-input-test.el \
+         test/neo-lean-progress-test.el
 
 .PHONY: test compile clean
 

@@ -1,8 +1,8 @@
-#+title: leanmacs/data
+#+title: neo-lean/data
 
 * abbreviations.json
 
-Unicode abbreviation table used by leanmacs' input method (e.g. ~\to~ →
+Unicode abbreviation table used by neo-lean' input method (e.g. ~\to~ →
 ~→~, ~\alpha~ → ~α~).
 
 - *Origin:* the VS Code Lean 4 extension,
@@ -19,5 +19,5 @@ Refresh it from upstream with:
 data/update-abbreviations.sh [REF]   # REF defaults to master
 #+end_src
 
-The rest of leanmacs is MIT-licensed; this file is the only Apache-2.0
+The rest of neo-lean is MIT-licensed; this file is the only Apache-2.0
 component.

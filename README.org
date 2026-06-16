@@ -11,12 +11,12 @@ agent. Expect rough edges; review before relying on it.
 * Installation
 
 #+begin_src elisp
-(add-to-list 'load-path "/path/to/lean-emacs")
-(require 'leanmacs-mode)
+(add-to-list 'load-path "/path/to/neo-lean-mode")
+(require 'neo-lean-mode)
 #+end_src
 
 Open a ~.lean~ file in a Lake project, start the server with ~eglot~, then run
-~leanmacs-goal~ inside a proof. The goal buffer then follows the cursor.
+~neo-lean-goal~ inside a proof. The goal buffer then follows the cursor.
 
 ** Requirements
 
@@ -39,7 +39,7 @@ move, so you can see exactly which subterm the hover refers to.
 
 If the optional [[https://github.com/casouri/eldoc-box][eldoc-box]] package is installed, the hover is instead shown in a
 childframe tooltip at point (like lean.nvim's floating window). It is enabled
-automatically in graphical frames; set ~leanmacs-goal-hover-tooltip~ to nil to
+automatically in graphical frames; set ~neo-lean-goal-hover-tooltip~ to nil to
 keep the echo-area display.
 
 Also: Unicode abbreviation input (\to → →, \alpha → α) and file-processing
@@ -48,19 +48,19 @@ in the margin on terminals).
 
 | Command                           | Binding   | Evil (Doom) | Description                                                                |
 |-----------------------------------+-----------+-------------+----------------------------------------------------------------------------|
-| ~leanmacs-goal~                   | ~C-c C-g~ | ~SPC m g~   | Show the interactive goal at point.                                        |
-| ~leanmacs-goal-go-to-definition~  | ~RET~     | ~g d~       | In the goal buffer, go to the definition of the subexpression under point. |
-| ~leanmacs-goal-go-to-declaration~ | --        | --          | As above, but the declaration.                                             |
-| ~leanmacs-goal-go-to-type~        | --        | ~SPC c t~   | As above, but the subexpression's type.                                    |
-| ~leanmacs-input-activate~         | --        | --          | Turn on the Leanmacs Unicode input method.                                 |
-| ~leanmacs-progress-clear~         | --        | --          | Remove file-processing progress bars from the buffer.                      |
+| ~neo-lean-goal~                   | ~C-c C-g~ | ~SPC m g~   | Show the interactive goal at point.                                        |
+| ~neo-lean-goal-go-to-definition~  | ~RET~     | ~g d~       | In the goal buffer, go to the definition of the subexpression under point. |
+| ~neo-lean-goal-go-to-declaration~ | --        | --          | As above, but the declaration.                                             |
+| ~neo-lean-goal-go-to-type~        | --        | ~SPC c t~   | As above, but the subexpression's type.                                    |
+| ~neo-lean-input-activate~         | --        | --          | Turn on the Neo-Lean Unicode input method.                                 |
+| ~neo-lean-progress-clear~         | --        | --          | Remove file-processing progress bars from the buffer.                      |
 
 The =Evil (Doom)= column lists the suggested Doom bindings.
 
 * Doom integration
 
 Enabled automatically when Doom is detected; no configuration required. It hooks
-leanmacs into various Doom features. For example, ~+lookup/definition~ works on
+neo-lean into various Doom features. For example, ~+lookup/definition~ works on
 the symbol under point in the goal buffer.
 
 * Development

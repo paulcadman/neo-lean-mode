@@ -1,4 +1,4 @@
-;;; leanmacs-doom.el --- Optional Doom Emacs integration  -*- lexical-binding: t; -*-
+;;; neo-lean-doom.el --- Optional Doom Emacs integration  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Jan Mas Rovira
 
@@ -13,26 +13,26 @@
 ;; buffer is wired into Doom's lookup system, so `+lookup/definition' and
 ;; `+lookup/type-definition' jump from the subexpression under point in the goal
 ;; buffer to its source.  (Doom's lookup has no `declaration' action, so
-;; `leanmacs-goal-go-to-declaration' is left for manual binding.)
+;; `neo-lean-goal-go-to-declaration' is left for manual binding.)
 ;;
 ;; Without Doom this file does nothing: the package stays editor-agnostic and
-;; depends only on Eglot.  It is required unconditionally by `leanmacs-mode';
+;; depends only on Eglot.  It is required unconditionally by `neo-lean-mode';
 ;; the integration only activates where Doom provides the seam.
 
 ;;; Code:
 
-(require 'leanmacs-goal)
+(require 'neo-lean-goal)
 
 ;; `set-lookup-handlers!' is a Doom macro.  Evaluate the registration at load
 ;; time only when it exists, via a quoted form, so we neither depend on Doom nor
 ;; expand the macro at byte-compile time.  The jumps round-trip to the Lean
 ;; server asynchronously, hence `:async'.
 (when (fboundp 'set-lookup-handlers!)
-  (eval '(set-lookup-handlers! 'leanmacs-infoview-mode
+  (eval '(set-lookup-handlers! 'neo-lean-infoview-mode
            :async t
-           :definition #'leanmacs-goal-go-to-definition
-           :type-definition #'leanmacs-goal-go-to-type)
+           :definition #'neo-lean-goal-go-to-definition
+           :type-definition #'neo-lean-goal-go-to-type)
         t))
 
-(provide 'leanmacs-doom)
-;;; leanmacs-doom.el ends here
+(provide 'neo-lean-doom)
+;;; neo-lean-doom.el ends here

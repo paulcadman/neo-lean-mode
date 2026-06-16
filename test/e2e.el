@@ -11,7 +11,7 @@
 
 ;;; Code:
 
-(require 'leanmacs-mode)
+(require 'neo-lean-mode)
 
 (defvar e2e-dir (file-name-directory (or load-file-name buffer-file-name)))
 
@@ -25,24 +25,24 @@ Signal an error mentioning WHAT on timeout."
       (error "Timed out after %ss waiting for %s" seconds what))))
 
 (defun e2e-goal-at (line col label)
-  "Move to LINE/COL, run `leanmacs-goal', and return the rendered string.
+  "Move to LINE/COL, run `neo-lean-goal', and return the rendered string.
 LABEL is used in progress messages."
   (goto-char (point-min))
   (forward-line (1- line))
   (move-to-column col)
   (message "[e2e] requesting goal at %s (line %d col %d)..." label line col)
-  (let ((before (with-current-buffer (leanmacs-infoview--buffer) (buffer-string))))
-    (leanmacs-goal)
+  (let ((before (with-current-buffer (neo-lean-infoview--buffer) (buffer-string))))
+    (neo-lean-goal)
     (e2e-pump
      (lambda ()
        (not (equal before
-                   (with-current-buffer (leanmacs-infoview--buffer) (buffer-string)))))
+                   (with-current-buffer (neo-lean-infoview--buffer) (buffer-string)))))
      20 (format "goal response (%s)" label))
-    (with-current-buffer (leanmacs-infoview--buffer) (buffer-string))))
+    (with-current-buffer (neo-lean-infoview--buffer) (buffer-string))))
 
 (let ((file (expand-file-name "fixture/Fixture.lean" e2e-dir)))
   (find-file file)
-  (cl-assert (derived-mode-p 'leanmacs-mode) nil "fixture did not open in leanmacs-mode")
+  (cl-assert (derived-mode-p 'neo-lean-mode) nil "fixture did not open in neo-lean-mode")
   (message "[e2e] starting Eglot (lake serve); first run may build core...")
   ;; `eglot-ensure' defers via `post-command-hook', which never fires under
   ;; --batch, so connect directly.  Wait synchronously for initialization.
@@ -80,22 +80,22 @@ LABEL is used in progress messages."
 
 ;; --- cursor-follow auto-update ---
 ;; With the infoview visible, moving the cursor should refresh the goal with
-;; no explicit `leanmacs-goal'.  Batch has no windows, so stub the visibility
+;; no explicit `neo-lean-goal'.  Batch has no windows, so stub the visibility
 ;; gate and fire the post-command hook directly after moving point.
-(cl-letf (((symbol-function 'leanmacs-infoview-visible-p) (lambda () t)))
+(cl-letf (((symbol-function 'neo-lean-infoview-visible-p) (lambda () t)))
   (e2e-goal-at 8 2 "seed (sorry)")      ; seed infoview with the `True' goal
   (goto-char (point-min))
   (forward-line 1)                      ; move to the `by rfl' line, col 2
   (move-to-column 2)
-  (message "[e2e] cursor-follow: moved to `by rfl', firing post-command (no leanmacs-goal)...")
-  (leanmacs--goal-post-command)
+  (message "[e2e] cursor-follow: moved to `by rfl', firing post-command (no neo-lean-goal)...")
+  (neo-lean--goal-post-command)
   (e2e-pump
    (lambda ()
      (string-match-p "1 = 1"
-                     (with-current-buffer (leanmacs-infoview--buffer) (buffer-string))))
+                     (with-current-buffer (neo-lean-infoview--buffer) (buffer-string))))
    20 "cursor-follow auto-update")
   (message "[e2e] --- cursor-follow result ---\n%s"
-           (with-current-buffer (leanmacs-infoview--buffer) (buffer-string)))
+           (with-current-buffer (neo-lean-infoview--buffer) (buffer-string)))
   (message "[e2e] cursor-follow auto-update works."))
 
 (message "[e2e] PASS: interactive RPC keystone works end-to-end.")

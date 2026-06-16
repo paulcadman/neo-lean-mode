@@ -1,4 +1,4 @@
-;;; leanmacs-render.el --- Render interactive goals to text  -*- lexical-binding: t; -*-
+;;; neo-lean-render.el --- Render interactive goals to text  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Jan Mas Rovira
 
@@ -16,8 +16,8 @@
 ;; The `tag' payloads of `TaggedText'/`CodeWithInfos' carry per-subexpression
 ;; info (an `InfoWithCtx' handle the server uses to answer questions about that
 ;; exact subterm, plus its `subexprPos').  We render the text leaves as before
-;; but attach that info as text properties (`leanmacs-info' /
-;; `leanmacs-subexpr-pos') on the spans they cover, which is what makes the goal
+;; but attach that info as text properties (`neo-lean-info' /
+;; `neo-lean-subexpr-pos') on the spans they cover, which is what makes the goal
 ;; interactive: commands like go-to-definition read the info under point and
 ;; call the server.  Because `equal' ignores text properties on strings, the
 ;; plain-text rendering (and its tests) is unchanged.
@@ -26,7 +26,7 @@
 
 (require 'seq)
 
-(defconst leanmacs-render-default-goal-prefix "⊢ "
+(defconst neo-lean-render-default-goal-prefix "⊢ "
   "Symbol shown before a goal's target type when none is provided.")
 
 ;;;; Faces
@@ -36,50 +36,50 @@
 ;; hypothesis names and the expected-type header are coloured.  Each inherits a
 ;; standard font-lock face so it follows the user's theme; rebind to taste.
 
-(defface leanmacs-goal-prefix
+(defface neo-lean-goal-prefix
   '((t :inherit font-lock-keyword-face))
   "Face for a goal's prefix (the `⊢' turnstile)."
-  :group 'leanmacs)
+  :group 'neo-lean)
 
-(defface leanmacs-goal-case
+(defface neo-lean-goal-case
   '((t :inherit font-lock-keyword-face))
   "Face for a goal's `case' label."
-  :group 'leanmacs)
+  :group 'neo-lean)
 
-(defface leanmacs-goal-hypothesis-name
+(defface neo-lean-goal-hypothesis-name
   '((t :inherit font-lock-variable-name-face))
   "Face for accessible hypothesis names."
-  :group 'leanmacs)
+  :group 'neo-lean)
 
-(defface leanmacs-goal-inaccessible-name
+(defface neo-lean-goal-inaccessible-name
   '((t :inherit shadow))
   "Face for inaccessible hypothesis names (those marked with `✝')."
-  :group 'leanmacs)
+  :group 'neo-lean)
 
-(defface leanmacs-goal-expected-type
+(defface neo-lean-goal-expected-type
   '((t :inherit font-lock-keyword-face))
   "Face for the `Expected type:' header above the term goal."
-  :group 'leanmacs)
+  :group 'neo-lean)
 
-(defface leanmacs-goal-hover
+(defface neo-lean-goal-hover
   '((t :inherit font-lock-function-name-face :weight bold))
   "Face for the subexpression under point in the goal buffer.
 Changes the text colour and weight rather than the background, which reads
 better over the goal's own highlighting."
-  :group 'leanmacs)
+  :group 'neo-lean)
 
-(defun leanmacs-render--hyp-name (name)
+(defun neo-lean-render--hyp-name (name)
   "Return hypothesis NAME with the appropriate name face.
 Names carrying the inaccessible marker `✝' (optionally with a superscript
 index, e.g. `n✝¹') are dimmed, and the marker is stripped -- the shadow face
 alone conveys inaccessibility."
   (if (string-search "✝" name)
       (propertize (replace-regexp-in-string "✝[⁰¹²³⁴⁵⁶⁷⁸⁹]*" "" name)
-                  'face 'leanmacs-goal-inaccessible-name)
-    (propertize name 'face 'leanmacs-goal-hypothesis-name)))
+                  'face 'neo-lean-goal-inaccessible-name)
+    (propertize name 'face 'neo-lean-goal-hypothesis-name)))
 
-(defun leanmacs-render--apply-info (string info pos)
-  "Return STRING with INFO/POS attached where no `leanmacs-info' is set yet.
+(defun neo-lean-render--apply-info (string info pos)
+  "Return STRING with INFO/POS attached where no `neo-lean-info' is set yet.
 Nested tags render innermost-first, so the smallest (most specific)
 subexpression's info is already in place; this fills only the gaps with the
 enclosing tag's INFO, leaving the more specific inner info to win."
@@ -87,90 +87,90 @@ enclosing tag's INFO, leaving the more specific inner info to win."
         (i 0)
         (n (length string)))
     (while (< i n)
-      (let ((next (or (next-single-property-change i 'leanmacs-info s) n)))
-        (unless (get-text-property i 'leanmacs-info s)
-          (put-text-property i next 'leanmacs-info info s)
+      (let ((next (or (next-single-property-change i 'neo-lean-info s) n)))
+        (unless (get-text-property i 'neo-lean-info s)
+          (put-text-property i next 'neo-lean-info info s)
           (when pos
-            (put-text-property i next 'leanmacs-subexpr-pos pos s)))
+            (put-text-property i next 'neo-lean-subexpr-pos pos s)))
         (setq i next)))
     s))
 
-(defun leanmacs-render-tagged-text (tt)
+(defun neo-lean-render-tagged-text (tt)
   "Flatten a `TaggedText' (or `CodeWithInfos') TT to a string.
 TT is one of: (:text STRING), (:append [TT...]) or (:tag [SUBEXPR TT]).
 Tag nodes attach their `SUBEXPR' info as text properties on the rendered
-span (see `leanmacs-render--apply-info'); only text leaves contribute text."
+span (see `neo-lean-render--apply-info'); only text leaves contribute text."
   (cond
    ((null tt) "")
    ((stringp tt) tt)
    ((plist-member tt :text)
     (or (plist-get tt :text) ""))
    ((plist-member tt :append)
-    (mapconcat #'leanmacs-render-tagged-text (plist-get tt :append) ""))
+    (mapconcat #'neo-lean-render-tagged-text (plist-get tt :append) ""))
    ((plist-member tt :tag)
     ;; (:tag [SUBEXPR INNER]) -- render INNER and tag it with SUBEXPR's info.
     (let* ((tag (plist-get tt :tag))
            (subexpr (seq-elt tag 0))
-           (inner (leanmacs-render-tagged-text (seq-elt tag 1)))
+           (inner (neo-lean-render-tagged-text (seq-elt tag 1)))
            (info (plist-get subexpr :info)))
       (if info
-          (leanmacs-render--apply-info inner info (plist-get subexpr :subexprPos))
+          (neo-lean-render--apply-info inner info (plist-get subexpr :subexprPos))
         inner)))
    (t "")))
 
-(defun leanmacs-render--hypothesis (hyp)
+(defun neo-lean-render--hypothesis (hyp)
   "Render one `InteractiveHypothesisBundle' HYP to a string.
 Bundled names share a type, e.g. \"a b : Nat\"; let-binders also show
 their value after \":=\"."
-  (let* ((names (mapconcat #'leanmacs-render--hyp-name
+  (let* ((names (mapconcat #'neo-lean-render--hyp-name
                            (append (plist-get hyp :names) nil) " "))
-         (type (leanmacs-render-tagged-text (plist-get hyp :type)))
+         (type (neo-lean-render-tagged-text (plist-get hyp :type)))
          (val (plist-get hyp :val)))
     ;; `concat' preserves the type's text properties (the subexpression info),
     ;; which `format' with %s does not reliably do.
     (concat names " : " type
             (when val
-              (concat " := " (leanmacs-render-tagged-text val))))))
+              (concat " := " (neo-lean-render-tagged-text val))))))
 
-(defun leanmacs-render-goal (goal)
+(defun neo-lean-render-goal (goal)
   "Render one interactive GOAL to a string.
 Shows an optional case name, the hypotheses, and the target type prefixed
-by the goal's `goalPrefix' (default `leanmacs-render-default-goal-prefix')."
+by the goal's `goalPrefix' (default `neo-lean-render-default-goal-prefix')."
   (let ((lines '())
         (user-name (plist-get goal :userName))
         (prefix (propertize (or (plist-get goal :goalPrefix)
-                                leanmacs-render-default-goal-prefix)
-                            'face 'leanmacs-goal-prefix)))
+                                neo-lean-render-default-goal-prefix)
+                            'face 'neo-lean-goal-prefix)))
     (when (and user-name (not (string-empty-p user-name)))
       (push (propertize (format "case %s" user-name)
-                        'face 'leanmacs-goal-case)
+                        'face 'neo-lean-goal-case)
             lines))
     (seq-doseq (hyp (plist-get goal :hyps))
-      (push (leanmacs-render--hypothesis hyp) lines))
-    (push (concat prefix (leanmacs-render-tagged-text (plist-get goal :type))) lines)
+      (push (neo-lean-render--hypothesis hyp) lines))
+    (push (concat prefix (neo-lean-render-tagged-text (plist-get goal :type))) lines)
     (string-join (nreverse lines) "\n")))
 
-(defun leanmacs-render-goals (goals)
+(defun neo-lean-render-goals (goals)
   "Render the vector of interactive GOALS to a string.
 Returns \"No goals.\" when GOALS is empty."
   (if (seq-empty-p goals)
       "No goals."
-    (mapconcat #'leanmacs-render-goal goals "\n\n")))
+    (mapconcat #'neo-lean-render-goal goals "\n\n")))
 
-(defconst leanmacs-render-term-goal-header "Expected type:"
+(defconst neo-lean-render-term-goal-header "Expected type:"
   "Header shown above the term goal (the expected type at point).")
 
-(defun leanmacs-render-term-goal (term-goal)
+(defun neo-lean-render-term-goal (term-goal)
   "Render an `InteractiveTermGoal' TERM-GOAL, or nil when there is none.
 A term goal carries hypotheses and a target type just like a tactic goal,
-so it is rendered the same way under `leanmacs-render-term-goal-header'."
+so it is rendered the same way under `neo-lean-render-term-goal-header'."
   (when term-goal
-    (concat (propertize leanmacs-render-term-goal-header
-                        'face 'leanmacs-goal-expected-type)
+    (concat (propertize neo-lean-render-term-goal-header
+                        'face 'neo-lean-goal-expected-type)
             "\n"
-            (leanmacs-render-goal term-goal))))
+            (neo-lean-render-goal term-goal))))
 
-(defun leanmacs-render-info-popup (popup)
+(defun neo-lean-render-info-popup (popup)
   "Render an `InfoPopup' POPUP to a string, or nil when there is nothing to show.
 POPUP is what `Lean.Widget.InteractiveDiagnostics.infoToInteractive' returns
 for a subexpression: an optional :exprExplicit and :type (both
@@ -184,17 +184,17 @@ after a blank line."
            (parts '()))
       (cond
        ((and expr type)
-        (push (concat (leanmacs-render-tagged-text expr) " : "
-                      (leanmacs-render-tagged-text type))
+        (push (concat (neo-lean-render-tagged-text expr) " : "
+                      (neo-lean-render-tagged-text type))
               parts))
-       (type (push (leanmacs-render-tagged-text type) parts))
-       (expr (push (leanmacs-render-tagged-text expr) parts)))
+       (type (push (neo-lean-render-tagged-text type) parts))
+       (expr (push (neo-lean-render-tagged-text expr) parts)))
       (when (and (stringp doc) (not (string-empty-p doc)))
         (push doc parts))
       (when parts
         (string-join (nreverse parts) "\n\n")))))
 
-(defun leanmacs-render-state (goals term-goal)
+(defun neo-lean-render-state (goals term-goal)
   "Render the proof state at point to a string.
 GOALS is the vector of interactive tactic goals; TERM-GOAL is the optional
 `InteractiveTermGoal' (the expected type), or nil.  Shows the tactic goals,
@@ -202,12 +202,12 @@ then an `Expected type' section when a term goal is present, and
 \"No goals.\" when there is neither."
   (let ((sections '()))
     (unless (seq-empty-p goals)
-      (push (mapconcat #'leanmacs-render-goal goals "\n\n") sections))
-    (when-let* ((term (leanmacs-render-term-goal term-goal)))
+      (push (mapconcat #'neo-lean-render-goal goals "\n\n") sections))
+    (when-let* ((term (neo-lean-render-term-goal term-goal)))
       (push term sections))
     (if sections
         (string-join (nreverse sections) "\n\n")
       "No goals.")))
 
-(provide 'leanmacs-render)
-;;; leanmacs-render.el ends here
+(provide 'neo-lean-render)
+;;; neo-lean-render.el ends here
