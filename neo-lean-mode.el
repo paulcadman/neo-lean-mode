@@ -97,7 +97,7 @@ Eglot launches this within the current project."
   :syntax-table neo-lean-mode-syntax-table
   (setq-local comment-start "-- ")
   (setq-local comment-end "")
-  (setq-local comment-start-skip "[ \t]*\\(?://+\\|--+\\)[ \t]*")
+  (setq-local comment-start-skip "[ \t]*--+[ \t]*")
   (setq-local comment-use-syntax t)
   (setq-local tab-width 2)
   ;; Suggest `lake build' when compiling.

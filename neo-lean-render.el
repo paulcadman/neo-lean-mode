@@ -202,7 +202,7 @@ then an `Expected type' section when a term goal is present, and
 \"No goals.\" when there is neither."
   (let ((sections '()))
     (unless (seq-empty-p goals)
-      (push (mapconcat #'neo-lean-render-goal goals "\n\n") sections))
+      (push (neo-lean-render-goals goals) sections))
     (when-let* ((term (neo-lean-render-term-goal term-goal)))
       (push term sections))
     (if sections

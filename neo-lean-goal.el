@@ -25,11 +25,9 @@
 (require 'neo-lean-render)
 (require 'neo-lean-infoview)
 
-;; `eglot-uri-to-path' is the public name on Emacs 30+; on 29.x only the
-;; internal `eglot--uri-to-path' exists.  Pick whichever is present.
-(defalias 'neo-lean--goal-uri-to-path
-  (if (fboundp 'eglot-uri-to-path) 'eglot-uri-to-path 'eglot--uri-to-path)
-  "Convert an LSP document URI to a local file path.")
+(defun neo-lean--error-message (err)
+  "Best-effort human-readable string for an RPC ERR plist (or value)."
+  (or (and (listp err) (plist-get err :message)) err))
 
 (defcustom neo-lean-goal-auto-update t
   "When non-nil, refresh the goal buffer as the cursor moves.
@@ -87,8 +85,7 @@ once they arrive; otherwise refresh its contents in place."
            ;; Ignore transient errors during movement; only report on an
            ;; explicit request.
            (when (and (fresh-p) display)
-             (message "neo-lean-goal: %s"
-                      (or (and (listp err) (plist-get err :message)) err)))))))))
+             (message "neo-lean-goal: %s" (neo-lean--error-message err)))))))))
 
 ;;;###autoload
 (defun neo-lean-goal ()
@@ -134,7 +131,7 @@ Lean server in this buffer."
          (range (or (plist-get link :targetSelectionRange)
                     (plist-get link :targetRange)
                     (plist-get link :range)))
-         (path (and uri (neo-lean--goal-uri-to-path uri))))
+         (path (and uri (neo-lean-uri-to-path uri))))
     (unless path
       (user-error "Location has no file URI"))
     (pop-to-buffer (find-file-noselect path))
@@ -170,8 +167,7 @@ has not moved yet when we return), so we must report success here."
                (message "neo-lean: no %s location" kind)
              (neo-lean--goal-jump (seq-elt links 0))))
          (lambda (err)
-           (message "neo-lean: %s"
-                    (or (and (listp err) (plist-get err :message)) err))))))
+           (message "neo-lean: %s" (neo-lean--error-message err))))))
     t))
 
 (defun neo-lean-goal-go-to-definition ()

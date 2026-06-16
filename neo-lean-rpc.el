@@ -30,6 +30,12 @@
 (require 'jsonrpc)
 (require 'eglot)
 
+;; `eglot-uri-to-path' is the public name on Emacs 30+ (eglot 1.16); on 29.x
+;; only the internal `eglot--uri-to-path' exists.  Pick whichever is present.
+(defalias 'neo-lean-uri-to-path
+  (if (fboundp 'eglot-uri-to-path) 'eglot-uri-to-path 'eglot--uri-to-path)
+  "Convert an LSP document URI to a local file path.")
+
 ;;;; Error codes
 
 ;; Lean LSP/JSON-RPC error codes that mean the RPC session is dead and a new
@@ -39,13 +45,17 @@
 (defconst neo-lean-rpc--worker-exited -32901)
 (defconst neo-lean-rpc--worker-crashed -32902)
 
+(defconst neo-lean-rpc--dead-codes
+  (list neo-lean-rpc--needs-reconnect
+        neo-lean-rpc--content-modified
+        neo-lean-rpc--worker-exited
+        neo-lean-rpc--worker-crashed)
+  "RPC error codes that mean the session is dead and must be reconnected.")
+
 (defun neo-lean-rpc--dead-code-p (code)
   "Return non-nil if CODE indicates the RPC session is dead."
   (and (integerp code)
-       (memq code (list neo-lean-rpc--needs-reconnect
-                        neo-lean-rpc--content-modified
-                        neo-lean-rpc--worker-exited
-                        neo-lean-rpc--worker-crashed))))
+       (memq code neo-lean-rpc--dead-codes)))
 
 ;;;; Keep-alive period
 
@@ -199,32 +209,30 @@ current buffer."
 SUCCESS and ERROR are callbacks receiving the result plist or an error
 plist respectively.  If the session is mid-handshake the call is queued
 until it resolves.  On a dead session, reconnect once transparently."
-  (let* ((session (neo-lean-rpc-subsession-session subsession))
-         (pos (neo-lean-rpc-subsession-pos subsession))
-         (retried nil)
-         (on-error nil)
-         (run nil))
-    (setq on-error
-          (lambda (err)
-            ;; One transparent reconnect on a dead session.
-            (if (and (not retried)
-                     (neo-lean-rpc--dead-code-p (plist-get err :code)))
-                (let* ((connection (neo-lean-rpc-session-connection session))
-                       (uri (neo-lean-rpc-session-uri session)))
-                  (setq retried t)
-                  (remhash uri neo-lean-rpc--sessions)
-                  (setq session (neo-lean-rpc--session-for connection uri))
-                  (setf (neo-lean-rpc-subsession-session subsession) session)
-                  (funcall run))
-              (funcall error err))))
-    (setq run
-          (lambda ()
-            (if (neo-lean-rpc-session-connected session)
-                (neo-lean-rpc--do-call session pos method params success on-error)
-              (push (lambda ()
-                      (neo-lean-rpc--do-call session pos method params success on-error))
-                    (neo-lean-rpc-session-pending session)))))
-    (funcall run)))
+  (let ((session (neo-lean-rpc-subsession-session subsession))
+        (pos (neo-lean-rpc-subsession-pos subsession))
+        (retried nil))
+    (letrec ((on-error
+              (lambda (err)
+                ;; One transparent reconnect on a dead session.
+                (if (and (not retried)
+                         (neo-lean-rpc--dead-code-p (plist-get err :code)))
+                    (let* ((connection (neo-lean-rpc-session-connection session))
+                           (uri (neo-lean-rpc-session-uri session)))
+                      (setq retried t)
+                      (remhash uri neo-lean-rpc--sessions)
+                      (setq session (neo-lean-rpc--session-for connection uri))
+                      (setf (neo-lean-rpc-subsession-session subsession) session)
+                      (funcall run))
+                  (funcall error err))))
+             (run
+              (lambda ()
+                (if (neo-lean-rpc-session-connected session)
+                    (neo-lean-rpc--do-call session pos method params success on-error)
+                  (push (lambda ()
+                          (neo-lean-rpc--do-call session pos method params success on-error))
+                        (neo-lean-rpc-session-pending session))))))
+      (funcall run))))
 
 ;;;; Convenience wrappers for specific Lean RPC methods
 

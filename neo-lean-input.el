@@ -112,8 +112,7 @@ abbreviation KEY in it."
 Type a backslash followed by an abbreviation to insert a Unicode symbol,
 for example \\alpha for α, \\to for →, or \\<> for ⟨⟩ (point lands between
 the brackets).  Run `M-x quail-help' for the full table."
-     nil nil nil nil nil nil nil t))
-  (with-temp-buffer
+     nil nil nil nil nil nil nil t)
     (maphash
      (lambda (key expansion)
        (when (and (stringp key) (not (string-empty-p key)) (stringp expansion))

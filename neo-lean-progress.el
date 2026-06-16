@@ -22,12 +22,7 @@
 
 (require 'cl-lib)
 (require 'eglot)
-
-;; `eglot-uri-to-path' is the public name on Emacs 30+ (eglot 1.16); on 29.x
-;; only the internal `eglot--uri-to-path' exists.  Pick whichever is present.
-(defalias 'neo-lean-progress--uri-to-path
-  (if (fboundp 'eglot-uri-to-path) 'eglot-uri-to-path 'eglot--uri-to-path)
-  "Convert an LSP document URI to a local file path.")
+(require 'neo-lean-rpc)
 
 ;;;; Customization
 
@@ -169,7 +164,7 @@ range's start through its end inclusive."
 (defun neo-lean-progress--buffer-for-uri (uri)
   "Return the live buffer visiting URI, or nil."
   (when (stringp uri)
-    (let ((path (ignore-errors (neo-lean-progress--uri-to-path uri))))
+    (let ((path (ignore-errors (neo-lean-uri-to-path uri))))
       (and path (find-buffer-visiting path)))))
 
 (defun neo-lean-progress--handle (uri processing)
