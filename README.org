@@ -52,6 +52,7 @@ in the margin on terminals).
 | ~neo-lean-goal-go-to-definition~  | ~RET~     | ~g d~       | In the goal buffer, go to the definition of the subexpression under point. |
 | ~neo-lean-goal-go-to-declaration~ | --        | --          | As above, but the declaration.                                             |
 | ~neo-lean-goal-go-to-type~        | --        | ~SPC c t~   | As above, but the subexpression's type.                                    |
+| ~neo-lean-restart-file~           | ~C-c C-r~ | --          | Reopen the file on the server to rebuild and reload its imports.           |
 | ~neo-lean-input-activate~         | --        | --          | Turn on the Neo-Lean Unicode input method.                                 |
 | ~neo-lean-progress-clear~         | --        | --          | Remove file-processing progress bars from the buffer.                      |
 

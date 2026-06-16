@@ -67,7 +67,8 @@ Eglot launches this within the current project."
 
 (defvar-keymap neo-lean-mode-map
   :doc "Keymap for `neo-lean-mode'."
-  "C-c C-g" #'neo-lean-goal)
+  "C-c C-g" #'neo-lean-goal
+  "C-c C-r" #'neo-lean-restart-file)
 
 ;;;; Eglot integration
 
@@ -115,6 +116,7 @@ Eglot launches this within the current project."
 
 (require 'neo-lean-goal)
 (require 'neo-lean-progress)
+(require 'neo-lean-restart)
 ;; Optional editor integrations; each self-disables when its host is absent.
 (require 'neo-lean-doom)
 
