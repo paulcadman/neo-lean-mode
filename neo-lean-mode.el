@@ -68,6 +68,7 @@ Eglot launches this within the current project."
 (defvar-keymap neo-lean-mode-map
   :doc "Keymap for `neo-lean-mode'."
   "C-c C-g" #'neo-lean-goal
+  "C-c TAB" #'neo-lean-infoview-toggle
   "C-c C-r" #'neo-lean-restart-file)
 
 ;;;; Eglot integration

@@ -43,6 +43,7 @@ bindings under the localleader in =config.el= if you like:
   (map! :map neo-lean-mode-map
         :localleader
         "g" #'neo-lean-goal
+        "i" #'neo-lean-infoview-toggle
         "r" #'neo-lean-restart-file))
 #+end_src
 
@@ -71,6 +72,7 @@ in the margin on terminals).
 | Command                           | Binding   | Evil (Doom) | Description                                                                |
 |-----------------------------------+-----------+-------------+----------------------------------------------------------------------------|
 | ~neo-lean-goal~                   | ~C-c C-g~ | ~SPC m g~   | Show the interactive goal at point.                                        |
+| ~neo-lean-infoview-toggle~        | ~C-c TAB~ | ~SPC m i~   | Toggle the infoview window.                                                |
 | ~neo-lean-goal-go-to-definition~  | ~RET~     | ~g d~       | In the goal buffer, go to the definition of the subexpression under point. |
 | ~neo-lean-goal-go-to-declaration~ | --        | --          | As above, but the declaration.                                             |
 | ~neo-lean-goal-go-to-type~        | --        | ~SPC c t~   | As above, but the subexpression's type.                                    |

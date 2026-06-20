@@ -72,6 +72,15 @@ unchanged refreshes neither flicker nor reset the goal buffer's point."
   (display-buffer (neo-lean-infoview-update string)
                   neo-lean-infoview-display-action))
 
+(defun neo-lean-infoview-hide ()
+  "Hide all visible goal buffer windows.
+Return non-nil when at least one window was hidden."
+  (when-let* ((buffer (get-buffer neo-lean-infoview-buffer-name))
+              (windows (get-buffer-window-list buffer nil t)))
+    (dolist (window windows)
+      (quit-window nil window))
+    windows))
+
 (defun neo-lean-infoview-visible-p ()
   "Return non-nil if the goal buffer is shown in some window."
   (when-let* ((buffer (get-buffer neo-lean-infoview-buffer-name)))
