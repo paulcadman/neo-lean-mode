@@ -113,6 +113,12 @@
 
 ;;;; Structural faces
 
+(defun neo-lean-render-test--face-includes-p (face expected)
+  "Return non-nil when FACE includes EXPECTED."
+  (if (listp face)
+      (memq expected face)
+    (eq face expected)))
+
 (ert-deftest neo-lean-render-goal-faces ()
   (let* ((goal (list :hyps (vector (list :names (vector "a" "h✝¹")
                                          :type '(:text "Nat")))
@@ -132,6 +138,72 @@
   (let* ((goal (list :userName "succ" :hyps (vector) :type '(:text "P")))
          (s (neo-lean-render-goal goal)))
     (should (eq (get-text-property 0 'face s) 'neo-lean-goal-case))))
+
+(ert-deftest neo-lean-render-goal-diff-faces ()
+  (let* ((inserted (neo-lean-render-goal
+                    (list :isInserted t :hyps (vector) :type '(:text "A"))))
+         (removed (neo-lean-render-goal
+                   (list :isRemoved t :hyps (vector) :type '(:text "A"))))
+         (unchanged (neo-lean-render-goal
+                     (list :isInserted :json-false
+                           :hyps (vector)
+                           :type '(:text "A")))))
+    (should (eq (get-text-property (string-match "⊢" inserted) 'face inserted)
+                'neo-lean-goal-inserted))
+    (should (eq (get-text-property (string-match "⊢" removed) 'face removed)
+                'neo-lean-goal-removed))
+    (should (eq (get-text-property (string-match "⊢" unchanged) 'face unchanged)
+                'neo-lean-goal-prefix))))
+
+(ert-deftest neo-lean-render-hypothesis-diff-faces ()
+  (let* ((inserted (neo-lean-render-goal
+                    (list :hyps (vector (list :isInserted t
+                                              :names (vector "h")
+                                              :type '(:text "Nat")))
+                          :type '(:text "Nat"))))
+         (removed (neo-lean-render-goal
+                   (list :hyps (vector (list :isRemoved t
+                                             :names (vector "h")
+                                             :type '(:text "Nat")))
+                         :type '(:text "Nat"))))
+         (unchanged (neo-lean-render-goal
+                     (list :hyps (vector (list :isInserted :json-false
+                                               :names (vector "h")
+                                               :type '(:text "Nat")))
+                           :type '(:text "Nat")))))
+    (should (neo-lean-render-test--face-includes-p
+             (get-text-property 0 'face inserted)
+             'neo-lean-goal-inserted))
+    (should (neo-lean-render-test--face-includes-p
+             (get-text-property 0 'face removed)
+             'neo-lean-goal-removed))
+    (should-not (neo-lean-render-test--face-includes-p
+                 (get-text-property 0 'face unchanged)
+                 'neo-lean-goal-inserted))
+    (should (eq (get-text-property 0 'face unchanged)
+                'neo-lean-goal-hypothesis-name))))
+
+(ert-deftest neo-lean-render-tagged-text-diff-status-faces ()
+  (let* ((info '(:p 1))
+         (inserted (neo-lean-render-tagged-text
+                    (list :tag (vector (list :info info
+                                             :subexprPos "/"
+                                             :diffStatus "wasInserted")
+                                       '(:text "x")))))
+         (removed (neo-lean-render-tagged-text
+                   (list :tag (vector (list :diffStatus "willDelete")
+                                      '(:text "x")))))
+         (changed (neo-lean-render-tagged-text
+                   (list :tag (vector (list :diffStatus "wasChanged")
+                                      '(:text "x"))))))
+    (should (eq (get-text-property 0 'face inserted)
+                'neo-lean-goal-inserted))
+    (should (eq (get-text-property 0 'neo-lean-info inserted) info))
+    (should (equal (get-text-property 0 'neo-lean-subexpr-pos inserted) "/"))
+    (should (eq (get-text-property 0 'face removed)
+                'neo-lean-goal-removed))
+    (should (eq (get-text-property 0 'face changed)
+                'neo-lean-goal-changed))))
 
 ;;;; Term goal / combined state
 
