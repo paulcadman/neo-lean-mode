@@ -24,6 +24,28 @@ Open a ~.lean~ file in a Lake project, start the server with ~eglot~, then run
 - A Lean 4 toolchain (~lake~, ~lean~) on ~PATH~, e.g. via
   [[https://github.com/leanprover/elan][elan]].
 
+** Doom Emacs
+
+Paste this into your config:
+
+#+begin_src elisp
+(package! neo-lean
+  :recipe (:host github :repo "janmasrovira/neo-lean-mode"
+           :files ("*.el" "data")))
+#+end_src
+
+Run ~doom sync~ and restart. Opening a ~.lean~ file then activates
+~neo-lean-mode~ automatically (unless ~lean4-mode~ already claims ~.lean~). Add
+bindings under the localleader in =config.el= if you like:
+
+#+begin_src elisp
+(after! neo-lean-mode
+  (map! :map neo-lean-mode-map
+        :localleader
+        "g" #'neo-lean-goal
+        "r" #'neo-lean-restart-file))
+#+end_src
+
 * Features
 
 The goal buffer shows the live proof state: the interactive tactic goals and the
