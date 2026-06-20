@@ -26,7 +26,14 @@ Open a ~.lean~ file in a Lake project, start the server with ~eglot~, then run
 
 ** Doom Emacs
 
-Paste this into your config:
+neo-lean relies on Eglot, so make sure the lsp module is enabled with the
+~+eglot~ flag in =init.el=:
+
+#+begin_src elisp
+(lsp +eglot)
+#+end_src
+
+Then paste this into your config:
 
 #+begin_src elisp
 (package! neo-lean
