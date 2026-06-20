@@ -35,6 +35,13 @@ Eglot launches this within the current project."
   :type '(repeat string)
   :group 'neo-lean)
 
+(defcustom neo-lean-initialization-options '(:hasWidgets t)
+  "Initialization options sent to the Lean language server.
+`hasWidgets' asks Lean to return structured interactive diagnostics, including
+collapsible trace nodes, from its widget RPC endpoints."
+  :type 'plist
+  :group 'neo-lean)
+
 ;;;; Syntax
 
 (defvar neo-lean-mode-syntax-table
@@ -79,7 +86,9 @@ Eglot launches this within the current project."
 (add-to-list 'eglot-server-programs
              (cons 'neo-lean-mode
                    (lambda (&optional _interactive _project)
-                     neo-lean-server-command)))
+                     (append neo-lean-server-command
+                             (list :initializationOptions
+                                   neo-lean-initialization-options)))))
 
 (defun neo-lean--eglot-managed-setup ()
   "Buffer-local Eglot tweaks for Lean, run from `eglot-managed-mode-hook'."

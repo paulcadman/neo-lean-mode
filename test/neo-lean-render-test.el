@@ -161,6 +161,97 @@
     (should (equal (neo-lean-render-state goals term)
                    "⊢ A\n\nExpected type:\n⊢ Nat"))))
 
+(ert-deftest neo-lean-render-messages-empty ()
+  (should (null (neo-lean-render-messages nil)))
+  (should (null (neo-lean-render-messages '("")))))
+
+(defun neo-lean-render-test--text-diagnostic (text)
+  "Return a simple interactive diagnostic with message TEXT."
+  (list :source "Lean 4"
+        :severity 3
+        :message (list :text text)))
+
+(ert-deftest neo-lean-render-messages ()
+  (let ((s (neo-lean-render-messages
+            (list (neo-lean-render-test--text-diagnostic
+                   "trace.profiler: elaboration 12ms")
+                  (neo-lean-render-test--text-diagnostic
+                   "other message")))))
+    (should (equal s (concat "Messages:\n"
+                             "▼ Lean 4 Information\n"
+                             "trace.profiler: elaboration 12ms\n\n"
+                             "▼ Lean 4 Information\n"
+                             "other message")))
+    (should (eq (get-text-property 0 'face s) 'neo-lean-goal-messages))))
+
+(defun neo-lean-render-test--trace-diagnostic (&optional collapsed children)
+  "Return a small interactive trace diagnostic for renderer tests."
+  (let* ((child (list :tag
+                      (vector
+                       (list :trace
+                             (list :indent 2
+                                   :cls "Elab.step"
+                                   :msg '(:text "child")
+                                   :collapsed nil
+                                   :children (list :strict (vector))))
+                       '(:text ""))))
+         (trace (list :indent 0
+                      :cls "Elab.command"
+                      :msg '(:text "parent")
+                      :collapsed collapsed
+                      :children (or children (list :strict (vector child))))))
+    (list :source "Lean 4"
+          :severity 3
+          :message (list :tag (vector (list :trace trace) '(:text ""))))))
+
+(ert-deftest neo-lean-render-interactive-diagnostic-trace-folds ()
+  (let* ((diag (neo-lean-render-test--trace-diagnostic))
+         (s (neo-lean-render-messages (list diag))))
+    (should (string-match-p "▼ Lean 4 Information" s))
+    (should (string-match-p "▼ \\[Elab\\.command\\] parent" s))
+    (should (string-match-p "\\[Elab\\.step\\] child" s))
+    (should (equal (get-text-property (string-match "Elab\\.command" s)
+                                      'neo-lean-fold-id s)
+                   "diagnostic/0/message"))))
+
+(ert-deftest neo-lean-render-interactive-diagnostic-trace-collapsed-state ()
+  (let ((state (make-hash-table :test #'equal)))
+    (puthash "diagnostic/0/message" '(:collapsed t) state)
+    (let* ((neo-lean-render-fold-state state)
+           (diag (neo-lean-render-test--trace-diagnostic))
+           (s (neo-lean-render-messages (list diag))))
+      (should (string-match-p "▶ \\[Elab\\.command\\] parent" s))
+      (should (eq (get-text-property (string-match "child" s) 'invisible s)
+                  'neo-lean-fold)))))
+
+(ert-deftest neo-lean-render-interactive-diagnostic-lazy-trace-keeps-ref ()
+  (let* ((lazy '(:p 7))
+         (diag (neo-lean-render-test--trace-diagnostic
+                t (list :lazy lazy)))
+         (s (neo-lean-render-messages (list diag)))
+         (pos (string-match "Elab\\.command" s)))
+    (should (string-match-p "▶ \\[Elab\\.command\\] parent" s))
+    (should (equal (get-text-property pos 'neo-lean-fold-lazy s) lazy))))
+
+(ert-deftest neo-lean-render-state-with-messages ()
+  (let ((goals (vector (list :hyps (vector) :type '(:text "A")))))
+    (should (equal (neo-lean-render-state
+                    goals nil
+                    (list (neo-lean-render-test--text-diagnostic
+                           "trace.profiler: 12ms")))
+                   (concat "⊢ A\n\nMessages:\n"
+                           "▼ Lean 4 Information\n"
+                           "trace.profiler: 12ms")))))
+
+(ert-deftest neo-lean-render-state-messages-only ()
+  (should (equal (neo-lean-render-state
+                  nil nil
+                  (list (neo-lean-render-test--text-diagnostic
+                         "trace.profiler: 12ms")))
+                 (concat "Messages:\n"
+                         "▼ Lean 4 Information\n"
+                         "trace.profiler: 12ms"))))
+
 (ert-deftest neo-lean-render-state-empty ()
   (should (equal (neo-lean-render-state (vector) nil) "No goals."))
   (should (equal (neo-lean-render-state nil nil) "No goals.")))

@@ -49,6 +49,156 @@ Coalesces rapid movement into a single request."
 (defvar-local neo-lean--goal-last-point nil
   "Buffer position of the last scheduled refresh.")
 
+(defun neo-lean--goal-line-range (pos)
+  "Return the one-line LSP line range containing POS."
+  (when-let* ((line (plist-get (plist-get pos :position) :line)))
+    (list :start line :end (1+ line))))
+
+(defun neo-lean--goal-diagnostic-visible-p (diagnostic)
+  "Return non-nil when interactive DIAGNOSTIC should appear in the infoview."
+  (and (not (plist-get diagnostic :isSilent))
+       (not (seq-contains-p (plist-get diagnostic :leanTags) 2))))
+
+(defun neo-lean--goal-filter-interactive-diagnostics (diagnostics)
+  "Filter Lean interactive DIAGNOSTICS for infoview display."
+  (seq-filter #'neo-lean--goal-diagnostic-visible-p diagnostics))
+
+(defun neo-lean--goal-source-buffer ()
+  "Return the live source buffer for the visible infoview, or nil."
+  (when-let* (((neo-lean-infoview-visible-p))
+              (buffer (get-buffer neo-lean-infoview-buffer-name))
+              (src (buffer-local-value 'neo-lean-infoview--source-buffer buffer))
+              ((buffer-live-p src)))
+    src))
+
+(defun neo-lean--goal-buffer-uri-p (uri)
+  "Return non-nil if URI names the current buffer's file."
+  (when-let* ((path (and uri (neo-lean-uri-to-path uri)))
+              (file (buffer-file-name)))
+    (equal (file-truename path) (file-truename file))))
+
+(defun neo-lean--goal-schedule-update ()
+  "Schedule a debounced infoview refresh for the current source buffer."
+  (when (timerp neo-lean--goal-timer)
+    (cancel-timer neo-lean--goal-timer))
+  (let ((buf (current-buffer)))
+    (setq neo-lean--goal-timer
+          (run-with-timer
+           neo-lean-goal-update-delay nil
+           (lambda ()
+             (when (buffer-live-p buf)
+               (with-current-buffer buf
+                 (setq neo-lean--goal-timer nil)
+                 (neo-lean--goal-update nil))))))))
+
+(defun neo-lean--infoview-fold-state ()
+  "Return the current infoview buffer's fold-state table."
+  (unless (hash-table-p neo-lean-infoview--fold-state)
+    (setq neo-lean-infoview--fold-state (make-hash-table :test #'equal)))
+  neo-lean-infoview--fold-state)
+
+(defun neo-lean--infoview-fold-entry (id)
+  "Return the fold state entry for ID in the current infoview buffer."
+  (gethash id (neo-lean--infoview-fold-state)))
+
+(defun neo-lean--infoview-fold-put (id key value)
+  "Set fold state KEY to VALUE for fold ID in the current infoview buffer."
+  (let* ((state (neo-lean--infoview-fold-state))
+         (entry (copy-sequence (or (gethash id state) '()))))
+    (puthash id (plist-put entry key value) state)))
+
+(defun neo-lean--infoview-render-data (data)
+  "Render structured infoview DATA using current fold state."
+  (let ((neo-lean-render-fold-state (neo-lean--infoview-fold-state)))
+    (neo-lean-render-state (plist-get data :goals)
+                           (plist-get data :term-goal)
+                           (plist-get data :messages))))
+
+(defun neo-lean--infoview-set-render-data (data)
+  "Store structured infoview DATA in the shared goal buffer."
+  (with-current-buffer (neo-lean-infoview--buffer)
+    (neo-lean--infoview-fold-state)
+    (setq neo-lean-infoview--render-data data)))
+
+(defun neo-lean--infoview-goto-fold (id)
+  "Move point to fold ID in the current infoview buffer."
+  (when (stringp id)
+    (let ((pos (point-min))
+          (end (point-max))
+          found)
+      (while (and (not found) (< pos end))
+        (if (equal (get-text-property pos 'neo-lean-fold-id) id)
+            (setq found pos)
+          (setq pos (or (next-single-property-change
+                         pos 'neo-lean-fold-id nil end)
+                        end))))
+      (when found
+        (goto-char found)))))
+
+(defun neo-lean--infoview-rerender (&optional preserve-fold-id)
+  "Rerender the shared goal buffer from its last structured payload.
+When PRESERVE-FOLD-ID is non-nil, leave point on that fold header after
+rerendering."
+  (when-let* ((buffer (get-buffer neo-lean-infoview-buffer-name)))
+    (let ((window-starts
+           (mapcar (lambda (window)
+                     (cons window (window-start window)))
+                   (get-buffer-window-list buffer nil t))))
+      (with-current-buffer buffer
+        (when neo-lean-infoview--render-data
+          (neo-lean-infoview-update
+           (neo-lean--infoview-render-data neo-lean-infoview--render-data)
+           t)
+          (when preserve-fold-id
+            (neo-lean--infoview-goto-fold preserve-fold-id))
+          (dolist (entry window-starts)
+            (when (window-live-p (car entry))
+              (set-window-start (car entry)
+                                (min (cdr entry) (point-max))
+                                t))))))))
+
+(defun neo-lean--infoview-fold-property-at-line (property)
+  "Return fold PROPERTY at point or on the current line."
+  (or (get-text-property (point) property)
+      (let ((pos (line-beginning-position))
+            (end (line-end-position))
+            value)
+        (while (and (not value) (< pos end))
+          (setq value (get-text-property pos property))
+          (setq pos (or (next-single-property-change pos property nil end)
+                        end)))
+        value)))
+
+(defun neo-lean--infoview-load-lazy-fold (id lazy)
+  "Load lazy trace children LAZY for fold ID."
+  (let* ((infoview (current-buffer))
+         (src neo-lean-infoview--source-buffer)
+         (pos neo-lean-infoview--source-pos))
+    (unless (buffer-live-p src)
+      (user-error "No live Lean source buffer for this goal"))
+    (with-current-buffer src
+      (unless (eglot-current-server)
+        (user-error "No Lean language server connected"))
+      (let ((subsession (neo-lean-rpc-open pos)))
+        (neo-lean-rpc-lazy-trace-children-to-interactive
+         subsession lazy
+         (lambda (children)
+           (when (buffer-live-p infoview)
+             (with-current-buffer infoview
+               (neo-lean--infoview-fold-put id :loading nil)
+               (neo-lean--infoview-fold-put id :children children)
+               (neo-lean--infoview-rerender id))))
+         (lambda (err)
+           (when (buffer-live-p infoview)
+             (with-current-buffer infoview
+               (neo-lean--infoview-fold-put id :loading nil)
+               (neo-lean--infoview-fold-put
+                id :children
+                (vector (list :text
+                              (format "Error loading trace children: %s"
+                                      (neo-lean--error-message err)))))
+               (neo-lean--infoview-rerender id)))))))))
+
 (defun neo-lean--goal-update (&optional display)
   "Fetch the proof state at point and render it into the infoview.
 Requests the interactive tactic goals and the term goal (the expected
@@ -58,18 +208,35 @@ once they arrive; otherwise refresh its contents in place."
     (let* ((id (cl-incf neo-lean--goal-request-id))
            (src (current-buffer))
            (pos (neo-lean-rpc-position-params))
+           (line-range (neo-lean--goal-line-range pos))
            (subsession (neo-lean-rpc-open pos)))
-      (cl-flet ((fresh-p ()
-                  (and (buffer-live-p src)
-                       (= id (buffer-local-value 'neo-lean--goal-request-id src))))
-                (show (goals term-goal)
-                  (let ((text (neo-lean-render-state goals term-goal)))
-                    ;; Remember where this goal came from so interactive
-                    ;; commands in the goal buffer can query the server.
-                    (neo-lean-infoview-set-source src pos)
-                    (if display
-                        (neo-lean-infoview-display text)
-                      (neo-lean-infoview-update text)))))
+      (cl-labels ((fresh-p ()
+                    (and (buffer-live-p src)
+                         (= id (buffer-local-value 'neo-lean--goal-request-id src))))
+                  (show (goals term-goal diagnostics)
+                    (let* ((data (list :goals goals
+                                       :term-goal term-goal
+                                       :messages diagnostics)))
+                      ;; Remember where this goal came from so interactive
+                      ;; commands in the goal buffer can query the server.
+                      (neo-lean-infoview-set-source src pos)
+                      (neo-lean--infoview-set-render-data data)
+                      (let ((text (with-current-buffer (neo-lean-infoview--buffer)
+                                    (neo-lean--infoview-render-data data))))
+                        (if display
+                            (neo-lean-infoview-display text)
+                          (neo-lean-infoview-update text)))))
+                  (show-with-diagnostics (goals term-goal)
+                    (neo-lean-rpc-get-interactive-diagnostics
+                     subsession line-range
+                     (lambda (diagnostics)
+                       (when (fresh-p)
+                         (show goals term-goal
+                               (neo-lean--goal-filter-interactive-diagnostics
+                                diagnostics))))
+                     (lambda (_err)
+                       (when (fresh-p)
+                         (show goals term-goal nil))))))
         (neo-lean-rpc-get-interactive-goals
          subsession
          (lambda (result)
@@ -79,8 +246,12 @@ once they arrive; otherwise refresh its contents in place."
              (let ((goals (plist-get result :goals)))
                (neo-lean-rpc-get-interactive-term-goal
                 subsession
-                (lambda (term-goal) (when (fresh-p) (show goals term-goal)))
-                (lambda (_err) (when (fresh-p) (show goals nil)))))))
+                (lambda (term-goal)
+                  (when (fresh-p)
+                    (show-with-diagnostics goals term-goal)))
+                (lambda (_err)
+                  (when (fresh-p)
+                    (show-with-diagnostics goals nil)))))))
          (lambda (err)
            ;; Ignore transient errors during movement; only report on an
            ;; explicit request.
@@ -108,6 +279,47 @@ interactive tactic state at point, like `neo-lean-goal'."
       (neo-lean-infoview-hide)
     (neo-lean-goal)))
 
+;;;###autoload
+(defun neo-lean-infoview-toggle-fold (&optional event)
+  "Toggle the fold at point in the Lean infoview.
+When invoked by mouse EVENT, toggle the fold under the click."
+  (interactive)
+  (when (and (consp event) (eventp event))
+    (let ((posn (event-end event)))
+      (when (windowp (posn-window posn))
+        (select-window (posn-window posn)))
+      (when (integer-or-marker-p (posn-point posn))
+        (goto-char (posn-point posn)))))
+  (let ((id (neo-lean--infoview-fold-property-at-line 'neo-lean-fold-id))
+        (collapsed (neo-lean--infoview-fold-property-at-line
+                    'neo-lean-fold-collapsed))
+        (lazy (neo-lean--infoview-fold-property-at-line 'neo-lean-fold-lazy)))
+    (unless id
+      (user-error "No fold at point"))
+    (if (and collapsed lazy
+             (not (plist-member (neo-lean--infoview-fold-entry id) :children)))
+        (progn
+          (neo-lean--infoview-fold-put id :collapsed nil)
+          (neo-lean--infoview-fold-put id :loading t)
+          (neo-lean--infoview-rerender id)
+          (neo-lean--infoview-load-lazy-fold id lazy))
+      (neo-lean--infoview-fold-put id :collapsed (not collapsed))
+      (neo-lean--infoview-rerender id))))
+
+(defun neo-lean-infoview-mouse-toggle-fold (event)
+  "Toggle the infoview fold clicked by mouse EVENT.
+Clicks outside fold headers simply move point inside the infoview."
+  (interactive "e")
+  (let* ((posn (event-end event))
+         (window (posn-window posn))
+         (pos (posn-point posn)))
+    (when (windowp window)
+      (select-window window))
+    (when (integer-or-marker-p pos)
+      (goto-char pos)
+      (when (neo-lean--infoview-fold-property-at-line 'neo-lean-fold-id)
+        (neo-lean-infoview-toggle-fold)))))
+
 (defun neo-lean--goal-post-command ()
   "Schedule a goal refresh after cursor movement, while the infoview is visible."
   (when (and neo-lean-goal-auto-update
@@ -115,17 +327,18 @@ interactive tactic state at point, like `neo-lean-goal'."
              (neo-lean-infoview-visible-p)
              (not (eql (point) neo-lean--goal-last-point)))
     (setq neo-lean--goal-last-point (point))
-    (when (timerp neo-lean--goal-timer)
-      (cancel-timer neo-lean--goal-timer))
-    (let ((buf (current-buffer)))
-      (setq neo-lean--goal-timer
-            (run-with-timer
-             neo-lean-goal-update-delay nil
-             (lambda ()
-               (when (buffer-live-p buf)
-                 (with-current-buffer buf
-                   (setq neo-lean--goal-timer nil)
-                   (neo-lean--goal-update nil)))))))))
+    (neo-lean--goal-schedule-update)))
+
+(cl-defmethod eglot-handle-notification :after
+  (_server (_method (eql textDocument/publishDiagnostics))
+           &key uri &allow-other-keys)
+  "Refresh a visible infoview when Lean publishes diagnostics for its source."
+  (when-let* (((bound-and-true-p neo-lean-goal-auto-update))
+              (src (neo-lean--goal-source-buffer)))
+    (with-current-buffer src
+      (when (and (eglot-current-server)
+                 (neo-lean--goal-buffer-uri-p uri))
+        (neo-lean--goal-schedule-update)))))
 
 (defun neo-lean--goal-setup ()
   "Install buffer-local cursor-follow tracking for the goal buffer."
@@ -134,6 +347,10 @@ interactive tactic state at point, like `neo-lean-goal'."
 (add-hook 'neo-lean-mode-hook #'neo-lean--goal-setup)
 
 ;;;; Interactive subexpressions: go to definition/declaration/type
+
+(define-key neo-lean-infoview-mode-map (kbd "TAB") #'neo-lean-infoview-toggle-fold)
+(define-key neo-lean-infoview-mode-map [mouse-1] #'neo-lean-infoview-mouse-toggle-fold)
+(define-key neo-lean-infoview-mode-map [mouse-2] #'ignore)
 
 (defun neo-lean--goal-jump (link)
   "Jump to LSP LINK, an LSP `Location' or `LocationLink' plist."

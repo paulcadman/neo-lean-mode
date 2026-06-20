@@ -250,6 +250,23 @@ Calls `Lean.Widget.getInteractiveTermGoal'."
    subsession "Lean.Widget.getInteractiveTermGoal"
    (neo-lean-rpc-subsession-pos subsession) success error))
 
+(defun neo-lean-rpc-get-interactive-diagnostics (subsession line-range success error)
+  "Request interactive diagnostics on SUBSESSION.
+LINE-RANGE is an LSP `LineRange' plist of the form (:start L :end L2), or nil
+to request all diagnostics.  Calls `Lean.Widget.getInteractiveDiagnostics'."
+  (neo-lean-rpc-subsession-call
+   subsession "Lean.Widget.getInteractiveDiagnostics"
+   (if line-range (list :lineRange line-range) '())
+   success error))
+
+(defun neo-lean-rpc-lazy-trace-children-to-interactive (subsession children success error)
+  "Request lazy trace CHILDREN on SUBSESSION.
+CHILDREN is the RPC reference stored in an interactive diagnostic trace node.
+Calls `Lean.Widget.lazyTraceChildrenToInteractive'."
+  (neo-lean-rpc-subsession-call
+   subsession "Lean.Widget.lazyTraceChildrenToInteractive"
+   children success error))
+
 (defun neo-lean-rpc-get-go-to-location (subsession kind info success error)
   "Request go-to locations for INFO on SUBSESSION.
 KIND is one of the strings \"definition\", \"declaration\" or \"type\".
