@@ -98,6 +98,16 @@ Lean server in this buffer."
     (user-error "No Lean language server connected (try `eglot')"))
   (neo-lean--goal-update t))
 
+;;;###autoload
+(defun neo-lean-infoview-toggle ()
+  "Toggle the Lean infoview for the current buffer.
+When the goal buffer is visible, hide it.  Otherwise fetch and display the
+interactive tactic state at point, like `neo-lean-goal'."
+  (interactive)
+  (if (neo-lean-infoview-visible-p)
+      (neo-lean-infoview-hide)
+    (neo-lean-goal)))
+
 (defun neo-lean--goal-post-command ()
   "Schedule a goal refresh after cursor movement, while the infoview is visible."
   (when (and neo-lean-goal-auto-update
