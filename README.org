@@ -56,11 +56,14 @@ bindings under the localleader in =config.el= if you like:
 
 * Features
 
-The goal buffer shows the live proof state: the interactive tactic goals and the
-term goal (the expected type at point, under an =Expected type:= heading). The
-goal is interactive -- each subexpression carries the server's info, so
+The goal buffer shows the live proof state: the interactive tactic goals, the
+term goal (the expected type at point, under an =Expected type:= heading), and
+Lean messages at point (including =trace.profiler= output, under a =Messages:=
+heading). The goal is interactive -- each subexpression carries the server's info, so
 go-to-definition/type jumps from the subexpression under point to its source
 (wired into Doom's =+lookup/= commands automatically; see [[*Doom integration][Doom integration]]).
+Trace messages have clickable chevrons; click them, or press ~TAB~ on the
+chevron line, to collapse and expand nested trace output.
 
 Hover works through ElDoc: move point onto a subexpression in the goal buffer
 and its type and docstring appear in the echo area (use ~eldoc-doc-buffer~ for

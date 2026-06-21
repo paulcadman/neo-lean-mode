@@ -33,11 +33,16 @@
   "The text-document-position the displayed goal was fetched at.
 Used to open an RPC session for interactive commands (e.g. go-to-definition)
 issued from this buffer.")
+(defvar-local neo-lean-infoview--render-data nil
+  "Latest structured infoview payload, used when rerendering folds.")
+(defvar-local neo-lean-infoview--fold-state nil
+  "Hash table of persistent fold state for the current infoview payload.")
 
 (define-derived-mode neo-lean-infoview-mode special-mode "Neo-Lean Goal"
   "Major mode for the Lean goal display buffer."
   (setq-local truncate-lines nil)
-  (setq-local cursor-type nil))
+  (setq-local cursor-type nil)
+  (setq-local buffer-invisibility-spec '(neo-lean-fold)))
 
 (defun neo-lean-infoview-set-source (buffer pos)
   "Record BUFFER and POS as the source of the currently displayed goal.
@@ -54,17 +59,22 @@ goal buffer use these to talk to the Lean server about the source document."
         (neo-lean-infoview-mode)
         (current-buffer))))
 
-(defun neo-lean-infoview-update (string)
+(defun neo-lean-infoview-update (string &optional preserve-point)
   "Set the goal buffer contents to STRING and return the buffer.
 Does not display the buffer.  No-ops when STRING is already shown, so
-unchanged refreshes neither flicker nor reset the goal buffer's point."
+unchanged refreshes neither flicker nor reset the goal buffer's point.
+When PRESERVE-POINT is non-nil, keep point near its current position after
+rewriting the buffer."
   (let ((buffer (neo-lean-infoview--buffer)))
     (with-current-buffer buffer
-      (unless (string= string (buffer-string))
-        (let ((inhibit-read-only t))
+      (unless (equal-including-properties string (buffer-string))
+        (let ((inhibit-read-only t)
+              (pos (point)))
           (erase-buffer)
           (insert string)
-          (goto-char (point-min)))))
+          (goto-char (if preserve-point
+                         (min pos (point-max))
+                       (point-min))))))
     buffer))
 
 (defun neo-lean-infoview-display (string)
