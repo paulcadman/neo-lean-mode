@@ -25,6 +25,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'diff-mode)
 (require 'seq)
 
 (defconst neo-lean-render-default-goal-prefix "⊢ "
@@ -79,6 +80,21 @@ Changes the text colour and weight rather than the background, which reads
 better over the goal's own highlighting."
   :group 'neo-lean)
 
+(defface neo-lean-goal-inserted
+  '((t :inherit diff-added))
+  "Face for proof-state fragments Lean marks as inserted."
+  :group 'neo-lean)
+
+(defface neo-lean-goal-removed
+  '((t :inherit diff-removed))
+  "Face for proof-state fragments Lean marks as removed."
+  :group 'neo-lean)
+
+(defface neo-lean-goal-changed
+  '((t :inherit diff-refine-changed))
+  "Face for proof-state fragments Lean marks as changed."
+  :group 'neo-lean)
+
 (defvar neo-lean-render-fold-state nil
   "Hash table consulted while rendering foldable infoview nodes.
 Each key is a fold id and each value is a plist.  Recognized keys are
@@ -86,6 +102,32 @@ Each key is a fold id and each value is a plist.  Recognized keys are
 
 (defconst neo-lean-render-fold-open "▼")
 (defconst neo-lean-render-fold-closed "▶")
+
+(defun neo-lean-render--json-true-p (value)
+  "Return non-nil when VALUE is JSON true, not JSON false."
+  (eq value t))
+
+(defun neo-lean-render--insert-remove-face (object)
+  "Return the insertion/removal face requested by Lean for OBJECT."
+  (cond
+   ((neo-lean-render--json-true-p (plist-get object :isInserted))
+    'neo-lean-goal-inserted)
+   ((neo-lean-render--json-true-p (plist-get object :isRemoved))
+    'neo-lean-goal-removed)))
+
+(defun neo-lean-render--diff-status-face (status)
+  "Return the face corresponding to Lean's diff STATUS."
+  (pcase (if (symbolp status) (symbol-name status) status)
+    ((or "wasInserted" "willInsert") 'neo-lean-goal-inserted)
+    ((or "wasDeleted" "willDelete" "willChange") 'neo-lean-goal-removed)
+    ("wasChanged" 'neo-lean-goal-changed)))
+
+(defun neo-lean-render--add-face (string face)
+  "Return STRING with FACE added across its full extent."
+  (let ((s (copy-sequence string)))
+    (when (and face (> (length s) 0))
+      (add-face-text-property 0 (length s) face nil s))
+    s))
 
 (defun neo-lean-render--fold-entry (id)
   "Return the fold-state entry for ID, or nil."
@@ -193,10 +235,17 @@ span (see `neo-lean-render--apply-info'); only text leaves contribute text."
     (let* ((tag (plist-get tt :tag))
            (subexpr (seq-elt tag 0))
            (inner (neo-lean-render-tagged-text (seq-elt tag 1)))
-           (info (plist-get subexpr :info)))
-      (if info
-          (neo-lean-render--apply-info inner info (plist-get subexpr :subexprPos))
-        inner)))
+           (info (plist-get subexpr :info))
+           (rendered (if info
+                         (neo-lean-render--apply-info
+                          inner info (plist-get subexpr :subexprPos))
+                       inner))
+           (diff-face
+            (neo-lean-render--diff-status-face
+             (plist-get subexpr :diffStatus))))
+      (if diff-face
+          (neo-lean-render--add-face rendered diff-face)
+        rendered)))
    (t "")))
 
 (defun neo-lean-render--hypothesis (hyp)
@@ -205,6 +254,8 @@ Bundled names share a type, e.g. \"a b : Nat\"; let-binders also show
 their value after \":=\"."
   (let* ((names (mapconcat #'neo-lean-render--hyp-name
                            (append (plist-get hyp :names) nil) " "))
+         (names (neo-lean-render--add-face
+                 names (neo-lean-render--insert-remove-face hyp)))
          (type (neo-lean-render-tagged-text (plist-get hyp :type)))
          (val (plist-get hyp :val)))
     ;; `concat' preserves the type's text properties (the subexpression info),
@@ -219,9 +270,11 @@ Shows an optional case name, the hypotheses, and the target type prefixed
 by the goal's `goalPrefix' (default `neo-lean-render-default-goal-prefix')."
   (let ((lines '())
         (user-name (plist-get goal :userName))
-        (prefix (propertize (or (plist-get goal :goalPrefix)
-                                neo-lean-render-default-goal-prefix)
-                            'face 'neo-lean-goal-prefix)))
+        (prefix (propertize
+                 (or (plist-get goal :goalPrefix)
+                     neo-lean-render-default-goal-prefix)
+                 'face (or (neo-lean-render--insert-remove-face goal)
+                           'neo-lean-goal-prefix))))
     (when (and user-name (not (string-empty-p user-name)))
       (push (propertize (format "case %s" user-name)
                         'face 'neo-lean-goal-case)
